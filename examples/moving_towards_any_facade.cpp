@@ -4,7 +4,6 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "employee.h"
-//#include <boost/any.hpp>
 #include <vector>
 #include <iostream>
 #include <sstream>
@@ -12,6 +11,8 @@
 
 // This example shows how to manually adapt boost::any to allow 
 // (some) of the operations to be implemented with a "tell don't ask" idiom.
+//
+// You will *not* need boost to build this example.
 
 /*
 What we'd like to do...

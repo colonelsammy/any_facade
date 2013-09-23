@@ -13,6 +13,8 @@
 // This example shows how to manually adapt boost::any to allow 
 // (some) of the operations to be implemented with a "tell don't ask" idiom.
 // In this third example we will allow a more generic function call.
+//
+// You will *not* need boost to build this example.
 
 /*
 What we'd like to do...

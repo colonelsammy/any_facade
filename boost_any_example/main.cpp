@@ -1,7 +1,15 @@
-//          Copyright Malcolm Noyes 2012.
+//          Copyright Malcolm Noyes 2013.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
+
+//
+// This example demonstrates the use of boost::any.
+//
+// You will need boost to build this example.  You will probably need to change
+// the location (by default C:\Malcolm\downloads\Boost\boost_1_54_0\boost_1_54_0 in
+// Visual Studio and /c/Malcolm/downloads/Boost/boost_1_54_0/boost_1_54_0 for makefile).
+//
 
 #include "employee.h"
 #include <boost/any.hpp>

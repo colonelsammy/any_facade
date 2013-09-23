@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-c -Wall -I/c/Malcolm/downloads/Boost/boost_1_54_0/boost_1_54_0 -I../include
+CFLAGS=-c -Wall -I../include
 LDFLAGS=
 SOURCES=main.cpp \
 	moving_towards_any_facade.cpp \
