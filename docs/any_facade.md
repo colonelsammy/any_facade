@@ -2,6 +2,10 @@ Boost.any is a very clever way of turning heterogeneous types into homogeneous v
 
 When Kevlin first wrote it he foresaw that it could be adapted for other uses and boost::function, any_iterator and many others can trace their heritage back to it. This article describes another variation that I've called any_facade after the design pattern used to 
 
+This is my article. This is a test [[1]](#Link1). 
+And this is another [[2]](#Link2). 
+
+
 3. There are a couple of problems with boost::any though; one to do with rtti and the other with the way we use it. To illustrate this I'll use the simple data classes shown on the left.... and you'll recall the example from the first slide our example of using employee and chairman, shown on the right; now the first problem is that any relies on rtti.
 
 4. Embedded programmers will tell you that using rtti is always bad and cite space and speed issues, and sometimes they might be right, but here we're  specifically concerned with the typeid function, which booost::any uses to do its magic. Here we can see where the problem comes.  Although the chairman class is derived from employee, as far as the boost::any typeid comparision is concerned it's not the same thing as an employee.  So the first any_cast works for employee but fails for chairman.  As we expect, the second cast works for chairman and fails for employee, but since the first one failed we've failed to add the chairman's pay...
@@ -57,3 +61,11 @@ Twisting the RTTI System for Safe Dynamic Casts of void* in C++    Cassio Neri  
 (http://www.drdobbs.com/cpp/twisting-the-rtti-system-for-safe-dynami/229401004)
 
 External Polymorphism    Chris Cleeland, Douglas C. Schmidt and Timothy H. Harrison  Proceedings of the 3rd Pattern Languages of Programming Conference, Allerton Park, Illinois, September 4–6, 1996. (http://www.cs.wustl.edu/~schmidt/PDF/External-Polymorphism.pdf)
+
+
+### Footnotes
+
+1. <a name="Link1"></a>Google: [http://google.com](http://google.com)
+2. <a name="Link2"></a>Yahoo: [http://yahoo.com](http://google.com)
+
+--------------------------------------------------------------------------------
