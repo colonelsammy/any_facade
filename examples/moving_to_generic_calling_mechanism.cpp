@@ -32,135 +32,138 @@ for( AnyIterator iter = database.begin(); iter != database.end(); ++iter )
   total += a.accumlate(total, month);
 }
 */
-struct printable
+namespace
 {
-  virtual ~printable() {}
-  virtual void print(std::ostream& os) = 0;
-};
-
-struct accumable : public printable
-{
-  virtual double accumulate_pay(double current, int month) = 0;
-};
-
-template <typename Interface>
-class any_tell_dont_ask
-{
-public: // structors
-
-    any_tell_dont_ask()
-        : content(0)
+    struct printable
     {
-    }
-
-    template<typename ValueType>
-    any_tell_dont_ask(const ValueType & value)
-        : content(new holder<ValueType>(value))
-    {
-    }
-
-    any_tell_dont_ask(const any_tell_dont_ask & other)
-        : content(other.content ? other.content->clone() : 0)
-    {
-    }
-
-    ~any_tell_dont_ask()
-    {
-        delete content;
-    }
-
-public: // modifiers
-
-    any_tell_dont_ask & swap(any_tell_dont_ask & rhs)
-    {
-        std::swap(content, rhs.content);
-        return *this;
-    }
-
-    any_tell_dont_ask & operator=(any_tell_dont_ask rhs)
-    {
-        any_tell_dont_ask(rhs).swap(*this);
-        return *this;
-    }
-
-    // interface forwarding
-    template <typename Function>
-    void operator()(Function fn, std::ostream& os)
-    {
-        (content->*fn)(os);
-    }
-    template <typename Function>
-    double operator()(Function fn, double current, int month)
-    {
-        return (content->*fn)(current, month);
-    }
-
-public: // queries
-
-    bool empty() const
-    {
-        return !content;
-    }
-
-private: // types
-
-    class placeholder : public Interface
-    {
-    public: // structors
-        virtual ~placeholder() {}
-    public: // queries
-
-        //virtual const std::type_info & type() const = 0;
-
-        virtual placeholder * clone() const = 0;
-
+      virtual ~printable() {}
+      virtual void print(std::ostream& os) = 0;
     };
 
-    template<typename ValueType>
-    class holder : public placeholder
+    struct accumable : public printable
+    {
+      virtual double accumulate_pay(double current, int month) = 0;
+    };
+
+    template <typename Interface>
+    class any_tell_dont_ask
     {
     public: // structors
 
-        holder(const ValueType & value)
-            : held(value)
+        any_tell_dont_ask()
+            : content(0)
         {
+        }
+
+        template<typename ValueType>
+        any_tell_dont_ask(const ValueType & value)
+            : content(new holder<ValueType>(value))
+        {
+        }
+
+        any_tell_dont_ask(const any_tell_dont_ask & other)
+            : content(other.content ? other.content->clone() : 0)
+        {
+        }
+
+        ~any_tell_dont_ask()
+        {
+            delete content;
+        }
+
+    public: // modifiers
+
+        any_tell_dont_ask & swap(any_tell_dont_ask & rhs)
+        {
+            std::swap(content, rhs.content);
+            return *this;
+        }
+
+        any_tell_dont_ask & operator=(any_tell_dont_ask rhs)
+        {
+            any_tell_dont_ask(rhs).swap(*this);
+            return *this;
+        }
+
+        // interface forwarding
+        template <typename Function>
+        void operator()(Function fn, std::ostream& os)
+        {
+            (content->*fn)(os);
+        }
+        template <typename Function>
+        double operator()(Function fn, double current, int month)
+        {
+            return (content->*fn)(current, month);
         }
 
     public: // queries
 
-        /*virtual const std::type_info & type() const
+        bool empty() const
         {
-            return typeid(ValueType);
-        }*/
-
-        virtual placeholder * clone() const
-        {
-            return new holder(held);
-        }
-        virtual void print(std::ostream& os)
-        {
-            os << held;
-        }
-        virtual double accumulate_pay(double current, int month)
-        {
-            return current + held.accumulate_pay(month);
+            return !content;
         }
 
-    public: // representation
+    private: // types
 
-        ValueType held;
+        class placeholder : public Interface
+        {
+        public: // structors
+            virtual ~placeholder() {}
+        public: // queries
 
-    private: // intentionally left unimplemented
-        holder & operator=(const holder &);
+            //virtual const std::type_info & type() const = 0;
+
+            virtual placeholder * clone() const = 0;
+
+        };
+
+        template<typename ValueType>
+        class holder : public placeholder
+        {
+        public: // structors
+
+            holder(const ValueType & value)
+                : held(value)
+            {
+            }
+
+        public: // queries
+
+            /*virtual const std::type_info & type() const
+            {
+                return typeid(ValueType);
+            }*/
+
+            virtual placeholder * clone() const
+            {
+                return new holder(held);
+            }
+            virtual void print(std::ostream& os)
+            {
+                os << held;
+            }
+            virtual double accumulate_pay(double current, int month)
+            {
+                return current + held.accumulate_pay(month);
+            }
+
+        public: // representation
+
+            ValueType held;
+
+        private: // intentionally left unimplemented
+            holder & operator=(const holder &);
+        };
+
+    private: // representation
+
+        /*template<typename ValueType>
+        friend ValueType * any_cast(any *);*/
+
+        placeholder * content;
     };
-
-private: // representation
-
-    /*template<typename ValueType>
-    friend ValueType * any_cast(any *);*/
-
-    placeholder * content;
-};
+}
 
 /*template<typename ValueType>
 ValueType * any_cast(any * operand)

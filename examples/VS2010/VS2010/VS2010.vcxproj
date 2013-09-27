@@ -80,6 +80,8 @@
     <ClCompile Include="..\..\main.cpp" />
     <ClCompile Include="..\..\moving_towards_any_facade.cpp" />
     <ClCompile Include="..\..\moving_to_generic_calling_mechanism.cpp" />
+    <ClCompile Include="..\..\splitting_implementation.cpp" />
+    <ClCompile Include="..\..\splitting_interfaces.cpp" />
     <ClCompile Include="..\..\using_function_traits.cpp" />
   </ItemGroup>
   <ItemGroup>

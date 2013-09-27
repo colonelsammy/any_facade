@@ -5,7 +5,9 @@ SOURCES=main.cpp \
 	moving_towards_any_facade.cpp \
 	hoisting_out_an_interface.cpp \
 	moving_to_generic_calling_mechanism.cpp \
-	using_function_traits.cpp
+	using_function_traits.cpp \
+	splitting_interfaces.cpp \
+	splitting_implementation.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=example

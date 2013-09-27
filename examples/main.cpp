@@ -16,6 +16,8 @@ void moving_towards_any_facade_example();
 void hoisting_out_an_interface_example();
 void moving_to_generic_calling_mechanism_example();
 void using_function_traits_example();
+void split_interface_example();
+void split_implementation_example();
 
 int main()
 {
@@ -23,5 +25,7 @@ int main()
     hoisting_out_an_interface_example();
     moving_to_generic_calling_mechanism_example();
     using_function_traits_example();
+    split_interface_example();
+    split_implementation_example();
     return 0;
 }

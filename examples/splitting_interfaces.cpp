@@ -35,18 +35,39 @@ for( AnyIterator iter = database.begin(); iter != database.end(); ++iter )
 */
 namespace
 {
-    struct printable
+    template <typename I1, typename I2>
+    struct wrap;
+
+    template <>
+    struct wrap<void, void>
+    {};
+
+    template <>
+    struct wrap<void, wrap<void,void> >
+    {};
+
+    template <>
+    struct wrap< void, wrap<void, wrap<void,void> > >
+    {};
+
+    template <>
+    struct wrap< void, wrap< void, wrap<void, wrap<void,void> > > >
+    {};
+
+    template <>
+    struct wrap< void, wrap< void, wrap< void, wrap<void, wrap<void,void> > > > >
+    {};
+
+    template <typename I1>
+    struct wrap<I1, void> : I1
+    {};
+    
+    template <typename I1, typename I2>
+    struct wrap : I1, I2
     {
-      virtual ~printable() {}
-      virtual void print(std::ostream& os) = 0;
     };
 
-    struct accumable : public printable
-    {
-      virtual double accumulate_pay(double current, int month) = 0;
-    };
-
-    template <typename Interface>
+    template <typename I1, typename I2 = void, typename I3 = void, typename I4 = void, typename I5 = void, typename I6 = void>
     class any_tell_dont_ask
     {
     public: // structors
@@ -115,13 +136,11 @@ namespace
 
     private: // types
 
-        class placeholder : public Interface
+        class placeholder : public wrap<I1, wrap<I2, wrap<I3, wrap<I4, wrap<I5, wrap<I6, void> > > > > >
         {
         public: // structors
             virtual ~placeholder() {}
         public: // queries
-
-            //virtual const std::type_info & type() const = 0;
 
             virtual placeholder * clone() const = 0;
 
@@ -138,11 +157,6 @@ namespace
             }
 
         public: // queries
-
-            /*virtual const std::type_info & type() const
-            {
-                return typeid(ValueType);
-            }*/
 
             virtual placeholder * clone() const
             {
@@ -167,26 +181,57 @@ namespace
 
     private: // representation
 
-        /*template<typename ValueType>
-        friend ValueType * any_cast(any *);*/
-
         placeholder * content;
     };
 }
 
-/*template<typename ValueType>
-ValueType * any_cast(any * operand)
-{
-    return operand && 
-        operand->type() == typeid(ValueType)
-        ? &static_cast<any::holder<ValueType> *>(operand->content)->held
-        : 0;
-}*/
-
 namespace
 {
 
-typedef any_tell_dont_ask<accumable> Any;
+    struct printable
+    {
+      virtual ~printable() {}
+      virtual void print(std::ostream& os) = 0;
+    };
+
+    struct accumable
+    {
+      virtual ~accumable() {}
+      virtual double accumulate_pay(double current, int month) = 0;
+    };
+
+    struct T1
+    {
+        virtual ~T1() {}
+        void t(std::ostream& os) {os << "t1,";}
+    };
+    struct T2
+    {
+        virtual ~T2() {}
+        void t(std::ostream& os) {os << "t2,";}
+    };
+    struct T3
+    {
+        virtual ~T3() {}
+        void t(std::ostream& os) {os << "t3,";}
+    };
+    struct T4
+    {
+        virtual ~T4() {}
+        void t(std::ostream& os) {os << "t4,";}
+    };
+    struct T5
+    {
+        virtual ~T5() {}
+        void t(std::ostream& os) {os << "t5,";}
+    };
+    struct T6
+    {
+        virtual ~T6() {}
+        void t(std::ostream& os) {os << "t6,";}
+    };
+
+typedef any_tell_dont_ask<printable, accumable> Any;
 typedef std::vector<Any>::iterator AnyIterator;
 
 class list_employees
@@ -225,7 +270,7 @@ public:
 
 }
 
-void using_function_traits_example()
+void split_interface_example()
 {
     std::vector<Any> database;
     database.push_back(employee("Fred", 100.0));
@@ -247,5 +292,102 @@ void using_function_traits_example()
         std::cout << "Print (should have 'Fred' & 'Bert'): " << std::endl << result << std::endl;
         // works now
         assert(result.find("Bert") != std::string::npos);
+    }
+    {
+        typedef any_tell_dont_ask<printable> Any2;
+        typedef std::vector<Any2>::iterator Any2Iterator;
+
+        std::vector<Any2> database;
+        database.push_back(employee("Fred", 100.0));
+        database.push_back(chairman("Bert", 200.0, 1000.0));
+
+        std::ostringstream oss;
+        for( Any2Iterator iter = database.begin(); iter != database.end(); ++iter )
+        {
+            Any2& a = *iter;
+            a(&printable::print, oss);
+            oss << " ";
+        }
+        std::string result = oss.str();
+        assert(result.find("Fred") != std::string::npos);
+        std::cout << "Print (should have 'Fred' & 'Bert'): " << std::endl << result << std::endl;
+    }
+    {
+        std::ostringstream oss;
+        any_tell_dont_ask<T1> a;
+        a(&T1::t, oss);
+        std::string result = oss.str();
+        assert(result.find("t1") != std::string::npos);
+        std::cout << result << std::endl;
+    }
+    {
+        std::ostringstream oss;
+        any_tell_dont_ask<T1, T2> a;
+        a(&T1::t, oss);
+        a(&T2::t, oss);
+        std::string result = oss.str();
+        assert(result.find("t1") != std::string::npos);
+        assert(result.find("t2") != std::string::npos);
+        std::cout << result << std::endl;
+    }
+    {
+        std::ostringstream oss;
+        any_tell_dont_ask<T1, T2, T3> a;
+        a(&T1::t, oss);
+        a(&T2::t, oss);
+        a(&T3::t, oss);
+        std::string result = oss.str();
+        assert(result.find("t1") != std::string::npos);
+        assert(result.find("t2") != std::string::npos);
+        assert(result.find("t3") != std::string::npos);
+        std::cout << result << std::endl;
+    }
+    {
+        std::ostringstream oss;
+        any_tell_dont_ask<T1, T2, T3, T4> a;
+        a(&T1::t, oss);
+        a(&T2::t, oss);
+        a(&T3::t, oss);
+        a(&T4::t, oss);
+        std::string result = oss.str();
+        assert(result.find("t1") != std::string::npos);
+        assert(result.find("t2") != std::string::npos);
+        assert(result.find("t3") != std::string::npos);
+        assert(result.find("t4") != std::string::npos);
+        std::cout << result << std::endl;
+    }
+    {
+        std::ostringstream oss;
+        any_tell_dont_ask<T1, T2, T3, T4, T5> a;
+        a(&T1::t, oss);
+        a(&T2::t, oss);
+        a(&T3::t, oss);
+        a(&T4::t, oss);
+        a(&T5::t, oss);
+        std::string result = oss.str();
+        assert(result.find("t1") != std::string::npos);
+        assert(result.find("t2") != std::string::npos);
+        assert(result.find("t3") != std::string::npos);
+        assert(result.find("t4") != std::string::npos);
+        assert(result.find("t5") != std::string::npos);
+        std::cout << result << std::endl;
+    }
+    {
+        std::ostringstream oss;
+        any_tell_dont_ask<T1, T2, T3, T4, T5, T6> a;
+        a(&T1::t, oss);
+        a(&T2::t, oss);
+        a(&T3::t, oss);
+        a(&T4::t, oss);
+        a(&T5::t, oss);
+        a(&T6::t, oss);
+        std::string result = oss.str();
+        assert(result.find("t1") != std::string::npos);
+        assert(result.find("t2") != std::string::npos);
+        assert(result.find("t3") != std::string::npos);
+        assert(result.find("t4") != std::string::npos);
+        assert(result.find("t5") != std::string::npos);
+        assert(result.find("t6") != std::string::npos);
+        std::cout << result << std::endl;
     }
 }
