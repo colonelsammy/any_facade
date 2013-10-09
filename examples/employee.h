@@ -11,6 +11,7 @@
 
 class employee
 {
+    friend bool operator==(const employee& lhs, const employee& rhs);
 public:
     employee(const std::string& name, double salary)
         : m_name(name), m_salary(salary)
@@ -27,6 +28,11 @@ protected:
     std::string m_name;
     double m_salary;
 };
+
+inline bool operator==(const employee& lhs, const employee& rhs)
+{
+    return (lhs.m_name == rhs.m_name);
+}
 
 class chairman : public employee
 {

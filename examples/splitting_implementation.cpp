@@ -35,38 +35,6 @@ for( AnyIterator iter = database.begin(); iter != database.end(); ++iter )
 */
 namespace
 {
-    template <typename I1, typename I2>
-    struct wrap;
-
-    template <>
-    struct wrap<void, void>
-    {};
-
-    template <>
-    struct wrap<void, wrap<void,void> >
-    {};
-
-    template <>
-    struct wrap< void, wrap<void, wrap<void,void> > >
-    {};
-
-    template <>
-    struct wrap< void, wrap< void, wrap<void, wrap<void,void> > > >
-    {};
-
-    template <>
-    struct wrap< void, wrap< void, wrap< void, wrap<void, wrap<void,void> > > > >
-    {};
-
-    template <typename I1>
-    struct wrap<I1, void> : I1
-    {};
-    
-    template <typename I1, typename I2>
-    struct wrap : I1, I2
-    {
-    };
-
     template <typename Interface>
     struct TypeInfo
     {
@@ -113,21 +81,13 @@ namespace
         // ...
     };
 
-    /*template <typename I1, typename I2, typename I3, typename I4, typename I5, typename I6>
-        class placeholder : public wrap<I1, wrap<I2, wrap<I3, wrap<I4, wrap<I5, wrap<I6, void> > > > > >
-        {
-        public: // structors
-            virtual ~placeholder() {}
-        public: // queries
+    template <int N>
+    struct null_base { virtual ~null_base() {} };
 
-            virtual placeholder * clone() const = 0;
-
-        };*/
-
-    template <typename I1, typename I2 = void, typename I3 = void, typename I4 = void, typename I5 = void, typename I6 = void>
-    class any_tell_dont_ask : public forwarder<any_tell_dont_ask<I1,I2,I3,I4,I5,I6> >
+    template <typename I0 = null_base<0>, typename I1 = null_base<1>, typename I2 = null_base<2>, typename I3 = null_base<3>, typename I4 = null_base<4>, typename I5 = null_base<5>, typename I6 = null_base<6> >
+    class any_tell_dont_ask : public forwarder<any_tell_dont_ask<I0,I1,I2,I3,I4,I5,I6> >
     {
-        friend class forwarder<any_tell_dont_ask<I1,I2,I3,I4,I5,I6> >;
+        friend class forwarder<any_tell_dont_ask<I0,I1,I2,I3,I4,I5,I6> >;
     private:
         class placeholder;
 
@@ -211,20 +171,25 @@ namespace
             return !content;
         }
 
-        bool matches(const any_tell_dont_ask& rhs) const
+        bool equals(const any_tell_dont_ask& rhs) const
         {
+            if(content && rhs.content)
+            {
+                return content->equals(*rhs.content);
+            }
             return false;
         }
     private: // types
 
-        class placeholder : public wrap<I1, wrap<I2, wrap<I3, wrap<I4, wrap<I5, wrap<I6, void> > > > > >
+        class placeholder : public I0, public I1, public I2, public I3, public I4, public I5, public I6
         {
         public: // structors
             virtual ~placeholder() {}
         public: // queries
 
             virtual placeholder * clone() const = 0;
-
+            virtual int type() const  = 0;
+            virtual bool equals(const placeholder& other) const = 0;
         };
 
     public:
@@ -240,18 +205,20 @@ namespace
 
         public: // queries
 
-            /*virtual placeholder * clone() const
+            virtual int type() const
             {
-                return new holder(held);
+                return TypeInfo<any_tell_dont_ask>::template typeId<ValueType>();
             }
-            virtual void print(std::ostream& os)
+            virtual bool equals(const placeholder& other) const
             {
-                os << held;
+                if( type() == other.type() )
+                {
+                    // safe - types match
+                    const holder<ValueType>* rhs = static_cast<const holder<ValueType>*>(&other);
+                    return (held == rhs->held);
+                }
+                return false;
             }
-            virtual double accumulate_pay(double current, int month)
-            {
-                return current + held.accumulate_pay(month);
-            }*/
 
         protected: // representation
 
@@ -266,10 +233,10 @@ namespace
         placeholder * content;
     };
 
-    template <typename I1, typename I2, typename I3, typename I4, typename I5, typename I6>
-    bool operator==(const any_tell_dont_ask<I1,I2,I3,I4,I5,I6>& lhs, const any_tell_dont_ask<I1,I2,I3,I4,I5,I6>& rhs)
+    template <typename I0, typename I1, typename I2, typename I3, typename I4, typename I5, typename I6>
+    bool operator==(const any_tell_dont_ask<I0,I1,I2,I3,I4,I5,I6>& lhs, const any_tell_dont_ask<I0,I1,I2,I3,I4,I5,I6>& rhs)
     {
-        return lhs.matches(rhs);
+        return lhs.equals(rhs);
     }
 
     template <typename Base, typename T>
@@ -295,8 +262,11 @@ namespace
     public:
         void print(std::ostream& os)
         {
-            //typename Derived::placeholder* p = static_cast<Derived*>(this)->content;
             static_cast<Derived*>(this)->content->print(os);
+        }
+        double accumulate_pay(double current, int month)
+        {
+            return static_cast<Derived*>(this)->content->accumulate_pay(current, month);
         }
     };
 }
@@ -395,7 +365,8 @@ public:
         for( AnyIterator iter = database.begin(); iter != database.end(); ++iter )
         {
             Any& a = *iter;
-            total = a(&accumable::accumulate_pay, total, month);
+            //total = a(&accumable::accumulate_pay, total, month);
+            total = a.accumulate_pay(total, month);
         }
         return total;
     }
@@ -405,6 +376,20 @@ public:
 
 void split_implementation_example()
 {
+    {
+        employee e1("Fred", 100.0);
+        any_tell_dont_ask<> a(e1);
+        any_tell_dont_ask<> a2(a);
+        bool same = (a == a2);
+        if( same )
+        {
+            std::cout << "Empty Equal\n";
+        }
+        else
+        {
+            std::cout << "Empty Not Equal\n";
+        }
+    }
     {
         employee e1("Fred", 100.0);
         any_tell_dont_ask<printable> a(e1);
@@ -428,6 +413,18 @@ void split_implementation_example()
         {
             std::cout << "Not Equal\n";
         }
+
+        chairman e2("Bert", 200.0, 1000.0);
+        any_tell_dont_ask<printable> ac(e2);
+        same = (a == ac);
+        if( same )
+        {
+            std::cout << "Chariman Equal\n";
+        }
+        else
+        {
+            std::cout << "Chairman Not Equal\n";
+        }
     }
     {
         chairman e2("Bert", 200.0, 1000.0);
@@ -437,7 +434,7 @@ void split_implementation_example()
         std::string result = oss.str();
         std::cout << result << std::endl;
     }
-    /*std::vector<Any> database;
+    std::vector<Any> database;
     database.push_back(employee("Fred", 100.0));
     database.push_back(chairman("Bert", 200.0, 1000.0));
 
@@ -554,5 +551,5 @@ void split_implementation_example()
         assert(result.find("t5") != std::string::npos);
         assert(result.find("t6") != std::string::npos);
         std::cout << result << std::endl;
-    }*/
+    }
 }
