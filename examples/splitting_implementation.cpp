@@ -35,7 +35,7 @@ for( AnyIterator iter = database.begin(); iter != database.end(); ++iter )
 */
 namespace
 {
-    template <typename Interface>
+    template <typename InterfaceClass>
     struct TypeInfo
     {
         static int s_type;
@@ -54,9 +54,9 @@ namespace
         }
     };
 
-    template <typename Interface>
+    template <typename InterfaceClass>
     //static
-    int TypeInfo<Interface>::s_type = 0;
+    int TypeInfo<InterfaceClass>::s_type = 0;
 
     template <typename Base, typename T>
     class value_type_operations;
