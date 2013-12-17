@@ -10,3 +10,6 @@ TestResults
 *.o
 *.vcxproj.user
 *.exe
+tests/VS2012Native/Visual Lint
+tests/VS2012Managed/Visual Lint
+tests/VS2012ManagedRtti/Visual Lint
