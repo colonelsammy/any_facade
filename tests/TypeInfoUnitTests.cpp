@@ -32,4 +32,39 @@ namespace TypeInfoUnitTests
         REQUIRE(any_facade::type_info<InterfaceClass>::type_id<int>() != any_facade::type_info<InterfaceClass>::type_id<const A&>());
     }
 
+    TEST_CASE("Require different types are not equivalent", "[types]")
+    {
+        typedef int InterfaceClass; // doesn't need a real class for this test
+        /* !(w1 < w2)        // it's not true that w1 < w2
+            &&               //and
+           !(w2 < w1)        //it's not true that w2 < w1
+        */
+        bool equivalent = !(any_facade::type_info<InterfaceClass>::type_id<int>() < any_facade::type_info<InterfaceClass>::type_id<double>()) &&
+                                !(any_facade::type_info<InterfaceClass>::type_id<double>() < any_facade::type_info<InterfaceClass>::type_id<int>());
+        REQUIRE(!equivalent);
+
+        equivalent = !(any_facade::type_info<InterfaceClass>::type_id<A>() < any_facade::type_info<InterfaceClass>::type_id<double>()) &&
+                                !(any_facade::type_info<InterfaceClass>::type_id<double>() < any_facade::type_info<InterfaceClass>::type_id<A>());
+        REQUIRE(!equivalent);
+
+        equivalent = !(any_facade::type_info<InterfaceClass>::type_id<A>() < any_facade::type_info<InterfaceClass>::type_id<A*>()) &&
+                                !(any_facade::type_info<InterfaceClass>::type_id<A*>() < any_facade::type_info<InterfaceClass>::type_id<A>());
+        REQUIRE(!equivalent);
+    }
+
+    TEST_CASE("Require same types are equivalent", "[types]")
+    {
+        typedef int InterfaceClass; // doesn't need a real class for this test
+        bool equivalent = !(any_facade::type_info<InterfaceClass>::type_id<int>() < any_facade::type_info<InterfaceClass>::type_id<int>()) &&
+                                !(any_facade::type_info<InterfaceClass>::type_id<int>() < any_facade::type_info<InterfaceClass>::type_id<int>());
+        REQUIRE(equivalent);
+
+        equivalent = !(any_facade::type_info<InterfaceClass>::type_id<A>() < any_facade::type_info<InterfaceClass>::type_id<A>()) &&
+                                !(any_facade::type_info<InterfaceClass>::type_id<A>() < any_facade::type_info<InterfaceClass>::type_id<A>());
+        REQUIRE(equivalent);
+
+        equivalent = !(any_facade::type_info<InterfaceClass>::type_id<A*>() < any_facade::type_info<InterfaceClass>::type_id<A*>()) &&
+                                !(any_facade::type_info<InterfaceClass>::type_id<A*>() < any_facade::type_info<InterfaceClass>::type_id<A*>());
+        REQUIRE(equivalent);
+    }
 }

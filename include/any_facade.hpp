@@ -65,6 +65,10 @@ namespace any_facade
         {
             return !operator==(rhs);
         }
+        bool operator < (const type_info& rhs)
+        {
+            return (m_value.hash_code() < rhs.hash_code());
+        }
         size_t hash_code() const {return m_value.hash_code();}
     };
 
@@ -108,6 +112,10 @@ namespace any_facade
         {
             return !operator==(rhs);
         }
+        bool operator < (const type_info& rhs)
+        {
+            return (m_value < rhs.m_value);
+        }
         size_t hash_code() const {return m_value;}
     };
 
@@ -117,10 +125,10 @@ namespace any_facade
 
 #endif // ANY_FACADE_USE_RTTI
 
-    template <typename Base, typename T>
+    template <typename Derived, typename Base>
     class value_type_operations;
 
-    template <typename T>
+    template <typename Derived>
     class forwarder;
 
     template <int N>
@@ -129,24 +137,67 @@ namespace any_facade
     template <typename I0 = null_base<0>, typename I1 = null_base<1>, typename I2 = null_base<2>, typename I3 = null_base<3>, typename I4 = null_base<4>, typename I5 = null_base<5>, typename I6 = null_base<6> >
     class any : public forwarder<any<I0,I1,I2,I3,I4,I5,I6> >
     {
+        // CRTP base class has access to 'content'
         friend class forwarder<any<I0,I1,I2,I3,I4,I5,I6> >;
     private:
-        class placeholder;
-
-        template <typename T>
-        class operation_wrapper : public T
+        class placeholder : public I0, public I1, public I2, public I3, public I4, public I5, public I6
         {
-        public:
-            template<typename ValueType>
-            operation_wrapper(const ValueType & value)
-                : T(value)
-            {}
+        public: // structors
+            virtual ~placeholder() {}
+        public: // queries
+
+            virtual placeholder * clone() const = 0;
+            virtual type_info<any> type() const  = 0;
+            virtual bool equals(const placeholder& other) const = 0;
+            virtual bool less(const placeholder& other) const = 0;
+        };
+
+        //
+        // This has to be the most derived class so that 'clone' doesn't slice,
+        // so we use CRTP to enforce this condition
+        //
+        template<typename T>
+        class holder : public value_type_operations<holder<T>, placeholder>
+        {
+            // CRTP base class has access to 'held'
+            friend class value_type_operations<holder<T>, placeholder>;
+        public: // structors
+            typedef T ValueType;
+
+            explicit holder(const ValueType & value)
+                : held(value)
+            {
+            }
+
+        public: // queries
+
+            virtual type_info<any> type() const
+            {
+                return type_info<any>::template type_id<ValueType>();
+            }
             virtual placeholder * clone() const
             {
-                return new operation_wrapper(*this);
+                return new holder(*this);
             }
-        private:
-            operation_wrapper & operator=(const operation_wrapper &);
+            virtual bool equals(const placeholder& other) const
+            {
+                // safe - types match
+                const holder<ValueType>* rhs = static_cast<const holder<ValueType>*>(&other);
+                return (held == rhs->held);
+            }
+            virtual bool less(const placeholder& other) const
+            {
+                // safe - types match
+                const holder<ValueType>* rhs = static_cast<const holder<ValueType>*>(&other);
+                return (held < rhs->held);
+            }
+
+        private: // intentionally left unimplemented
+            holder & operator=(const holder &);
+
+        private: // representation
+
+            ValueType held;
         };
 
     public: // structors
@@ -158,14 +209,14 @@ namespace any_facade
 
         template<typename ValueType>
         any(const ValueType & value)
-            : content(new operation_wrapper<value_type_operations<holder<ValueType>, ValueType> >(value))
+            : content(new holder<ValueType>(value))
         {
         }
 
-        /*any(const any & other)
+        any(const any & other)
             : content(other.content ? other.content->clone() : 0)
         {
-        }*/
+        }
 
         ~any()
         {
@@ -174,7 +225,7 @@ namespace any_facade
 
     public: // modifiers
 
-        /*any & swap(any & rhs)
+        any & swap(any & rhs)
         {
             std::swap(content, rhs.content);
             return *this;
@@ -184,7 +235,7 @@ namespace any_facade
         {
             any(rhs).swap(*this);
             return *this;
-        }*/
+        }
 
         // interface forwarding
         /*template <typename Function>
@@ -213,75 +264,40 @@ namespace any_facade
             return !content;
         }
 
-        /*bool equals(const any& rhs) const
+    public: // comparisons
+        // equality
+        friend bool operator==(const any& lhs, const any& rhs)
         {
-            if(content && rhs.content)
+            if( lhs.content->type() == rhs.content->type() )
             {
-                return content->equals(*rhs.content);
+                // objects of the same type...value type comparison
+                return lhs.content->equals(*rhs.content);
             }
             return false;
-        }*/
+        }
+        friend bool operator!=(const any& lhs, const any& rhs) {return !static_cast<bool>(lhs == rhs);}
+
+        // less than comparable
+        friend bool operator<(const any& lhs, const any& rhs)
+        {
+            if( lhs.content->type() == rhs.content->type() )
+            {
+                // objects of the same type...value type comparison
+                return lhs.content->less(*rhs.content);
+            }
+            if( lhs.content->type() < rhs.content->type() ) return true;
+            else return false;
+        }
+        friend bool operator>(const any& lhs, const any& rhs)  { return rhs < lhs; }
+        friend bool operator<=(const any& lhs, const any& rhs) { return !static_cast<bool>(rhs < lhs); }
+        friend bool operator>=(const any& lhs, const any& rhs) { return !static_cast<bool>(lhs < rhs); }
+
     private: // types
-        any(const any & other);
-        any operator=(const any & other);
 
-        class placeholder : public I0, public I1, public I2, public I3, public I4, public I5, public I6
-        {
-        public: // structors
-            virtual ~placeholder() {}
-        public: // queries
-
-            virtual placeholder * clone() const = 0;
-            virtual type_info<any> type() const  = 0;
-            //virtual bool equals(const placeholder& other) const = 0;
-        };
-
-    public:
-        template<typename ValueType>
-        class holder : public placeholder
-        {
-        public: // structors
-
-            holder(const ValueType & value)
-                : held(value)
-            {
-            }
-
-        public: // queries
-
-            virtual type_info<any> type() const
-            {
-                return type_info<any>::template type_id<ValueType>();
-            }
-            /*virtual bool equals(const placeholder& other) const
-            {
-                if( type() == other.type() )
-                {
-                    // safe - types match
-                    const holder<ValueType>* rhs = static_cast<const holder<ValueType>*>(&other);
-                    return (held == rhs->held);
-                }
-                return false;
-            }*/
-
-        protected: // representation
-
-            ValueType held;
-
-        private: // intentionally left unimplemented
-            holder & operator=(const holder &);
-        };
-
-    protected: // representation
+    private: // representation
 
         placeholder * content;
     };
-
-    template <typename I0, typename I1, typename I2, typename I3, typename I4, typename I5, typename I6>
-    bool operator==(const any<I0,I1,I2,I3,I4,I5,I6>& lhs, const any<I0,I1,I2,I3,I4,I5,I6>& rhs)
-    {
-        return lhs.equals(rhs);
-    }
 
 }
 

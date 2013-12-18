@@ -69,6 +69,8 @@ public:
 
 int main()
 {
+    //boost::any a("42");
+
     std::vector<boost::any> database;
     database.push_back(employee("Fred", 100.0));
     database.push_back(chairman("Bert", 200.0, 1000.0));
