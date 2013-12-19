@@ -6,11 +6,7 @@
 #ifndef ANY_FACADE_HPP_INCLUDED
 #define ANY_FACADE_HPP_INCLUDED
 
-//#include <member_function_traits.hpp>
-//#include <vector>
-//#include <iostream>
-//#include <sstream>
-//#include <cassert>
+#include <member_function_traits.hpp>
 #ifdef ANY_FACADE_USE_RTTI
 #include <typeinfo>
 #endif
@@ -237,25 +233,137 @@ namespace any_facade
             return *this;
         }
 
-        // interface forwarding
-        /*template <typename Function>
-        typename member_function_traits<Function>::result_type operator()(Function fn)
+        // interface forwarding, allow up to 10 params
+        template <typename Function>
+        typename member_function_traits<Function>::result_type call(Function fn)
         {
             return (content->*fn)();
         }
+
         template <typename Function>
-        typename member_function_traits<Function>::result_type operator()(Function fn,
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
             typename member_function_traits<Function>::arg1_type t1)
         {
             return (content->*fn)(t1);
         }
+
         template <typename Function>
-        typename member_function_traits<Function>::result_type operator()(Function fn,
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
             typename member_function_traits<Function>::arg1_type t1,
             typename member_function_traits<Function>::arg2_type t2)
         {
             return (content->*fn)(t1, t2);
-        }*/
+        }
+
+        template <typename Function>
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
+            typename member_function_traits<Function>::arg1_type t1,
+            typename member_function_traits<Function>::arg2_type t2,
+            typename member_function_traits<Function>::arg3_type t3)
+        {
+            return (content->*fn)(t1, t2, t3);
+        }
+
+        template <typename Function>
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
+            typename member_function_traits<Function>::arg1_type t1,
+            typename member_function_traits<Function>::arg2_type t2,
+            typename member_function_traits<Function>::arg3_type t3,
+            typename member_function_traits<Function>::arg4_type t4)
+        {
+            return (content->*fn)(t1, t2, t3, t4);
+        }
+
+        template <typename Function>
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
+            typename member_function_traits<Function>::arg1_type t1,
+            typename member_function_traits<Function>::arg2_type t2,
+            typename member_function_traits<Function>::arg3_type t3,
+            typename member_function_traits<Function>::arg4_type t4,
+            typename member_function_traits<Function>::arg5_type t5)
+        {
+            return (content->*fn)(t1, t2, t3, t4, t5);
+        }
+
+        template <typename Function>
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
+            typename member_function_traits<Function>::arg1_type t1,
+            typename member_function_traits<Function>::arg2_type t2,
+            typename member_function_traits<Function>::arg3_type t3,
+            typename member_function_traits<Function>::arg4_type t4,
+            typename member_function_traits<Function>::arg5_type t5,
+            typename member_function_traits<Function>::arg6_type t6)
+        {
+            return (content->*fn)(t1, t2, t3, t4, t5, t6);
+        }
+
+        template <typename Function>
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
+            typename member_function_traits<Function>::arg1_type t1,
+            typename member_function_traits<Function>::arg2_type t2,
+            typename member_function_traits<Function>::arg3_type t3,
+            typename member_function_traits<Function>::arg4_type t4,
+            typename member_function_traits<Function>::arg5_type t5,
+            typename member_function_traits<Function>::arg6_type t6,
+            typename member_function_traits<Function>::arg7_type t7)
+        {
+            return (content->*fn)(t1, t2, t3, t4, t5, t6, t7);
+        }
+
+        template <typename Function>
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
+            typename member_function_traits<Function>::arg1_type t1,
+            typename member_function_traits<Function>::arg2_type t2,
+            typename member_function_traits<Function>::arg3_type t3,
+            typename member_function_traits<Function>::arg4_type t4,
+            typename member_function_traits<Function>::arg5_type t5,
+            typename member_function_traits<Function>::arg6_type t6,
+            typename member_function_traits<Function>::arg7_type t7,
+            typename member_function_traits<Function>::arg8_type t8)
+        {
+            return (content->*fn)(t1, t2, t3, t4, t5, t6, t7, t8);
+        }
+
+        template <typename Function>
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
+            typename member_function_traits<Function>::arg1_type t1,
+            typename member_function_traits<Function>::arg2_type t2,
+            typename member_function_traits<Function>::arg3_type t3,
+            typename member_function_traits<Function>::arg4_type t4,
+            typename member_function_traits<Function>::arg5_type t5,
+            typename member_function_traits<Function>::arg6_type t6,
+            typename member_function_traits<Function>::arg7_type t7,
+            typename member_function_traits<Function>::arg8_type t8,
+            typename member_function_traits<Function>::arg9_type t9)
+        {
+            return (content->*fn)(t1, t2, t3, t4, t5, t6, t7, t8, t9);
+        }
+
+        template <typename Function>
+        typename member_function_traits<Function>::result_type call(
+            Function fn,
+            typename member_function_traits<Function>::arg1_type t1,
+            typename member_function_traits<Function>::arg2_type t2,
+            typename member_function_traits<Function>::arg3_type t3,
+            typename member_function_traits<Function>::arg4_type t4,
+            typename member_function_traits<Function>::arg5_type t5,
+            typename member_function_traits<Function>::arg6_type t6,
+            typename member_function_traits<Function>::arg7_type t7,
+            typename member_function_traits<Function>::arg8_type t8,
+            typename member_function_traits<Function>::arg9_type t9,
+            typename member_function_traits<Function>::arg10_type t10)
+        {
+            return (content->*fn)(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);
+        }
 
     public: // queries
 

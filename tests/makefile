@@ -3,6 +3,7 @@ CFLAGS=-c -Wall -I../include -I../../Catch/include
 LDFLAGS=
 SOURCES=main.cpp \
 	AnyBasicUnitTests.cpp \
+	AnyCallUnitTests.cpp \
 	TypeInfoUnitTests.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
