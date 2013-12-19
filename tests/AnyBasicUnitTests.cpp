@@ -2,6 +2,7 @@
 #include "any_facade.hpp"
 #include <map>
 #include <vector>
+#include <typeinfo>
 
 namespace af = any_facade;
 
@@ -171,5 +172,84 @@ namespace AnyBasicUnitTests
             REQUIRE(v[2] == Any(7));
             REQUIRE(v[3] == Any(3.0));
         }
+    }
+
+    struct I0
+    {
+        virtual ~I0() {}
+        virtual void print() = 0;
+    };
+    class placeholder : public I0
+    {
+    public:
+        virtual ~placeholder() {}
+        virtual bool equals(const placeholder& rhs) const = 0;
+        virtual const std::type_info& type() const = 0;
+    };
+
+    template<class Derived>
+    class less_than_equals : public placeholder
+    {
+    public:
+        virtual bool equals(const placeholder& rhs) const
+        {
+            // safe - types match
+            const Derived* other = static_cast<const Derived*>(&rhs);
+            return (other->v == static_cast<const Derived*>(this)->v);
+        }
+    };
+
+    // The Curiously Recurring Template Pattern (CRTP)
+    template<typename ValueType, template<typename>class Derived>
+    class value_type_operations : public less_than_equals< Derived<ValueType> >
+    {
+    public:
+        // methods within Base can use template to access members of Derived
+        virtual void print()
+        {
+            std::cout << static_cast<Derived<ValueType>*>(this)->v;
+        }
+        virtual bool equals(const placeholder& rhs) const
+        {
+            // safe - types match
+            if( rhs.type() == typeid(int) && this->type() == typeid(double) )
+            {
+                const Derived<int>* other = static_cast<const Derived<int>*>(&rhs);
+                int v1 = static_cast<int>(other->v);
+                return (v1 == static_cast<const Derived<ValueType>*>(this)->v);
+            }
+            return less_than_equals<Derived<ValueType> >::equals(rhs);
+        }
+    };
+
+    template <typename ValueType>
+    class Derived : public value_type_operations<ValueType, Derived>
+    {
+    public:
+        Derived(const ValueType& t)
+            : v(t)
+        {}
+        // ...
+        virtual const std::type_info& type() const
+        {
+            return typeid(ValueType);
+        }
+    public:
+        ValueType v;
+    };
+    
+    TEST_CASE("3","")
+    {
+        Derived<int> tmp(42);
+        Derived<int> tmp2(666);
+        Derived<int> c(tmp);
+        bool v = tmp.equals(tmp2);
+        REQUIRE(!v);
+        tmp.print();
+        v = tmp.equals(c);
+        REQUIRE(v);
+        Derived<double> tmpd(42.0);
+        v = tmpd.equals(tmp);
+        REQUIRE(v);
     }
 }
