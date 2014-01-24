@@ -26,7 +26,7 @@ namespace any_facade
         // no methods
     };
 
-    template <typename Derived, typename Base>
+    template <typename Derived, typename Base, typename ValueType>
     class value_type_operations : public Base
     {
     public:

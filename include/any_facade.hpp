@@ -121,7 +121,7 @@ namespace any_facade
 
 #endif // ANY_FACADE_USE_RTTI
 
-    template <typename Derived, typename Base>
+    template <typename Derived, typename Base, typename ValueType>
     class value_type_operations;
 
     template <typename Derived>
@@ -153,10 +153,10 @@ namespace any_facade
         // so we use CRTP to enforce this condition
         //
         template<typename T>
-        class holder : public value_type_operations<holder<T>, placeholder>
+        class holder : public value_type_operations<holder<T>, placeholder, T>
         {
             // CRTP base class has access to 'held'
-            friend class value_type_operations<holder<T>, placeholder>;
+            friend class value_type_operations<holder<T>, placeholder, T>;
         public: // structors
             typedef T ValueType;
 
