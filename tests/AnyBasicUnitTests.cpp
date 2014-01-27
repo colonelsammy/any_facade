@@ -215,6 +215,17 @@ namespace AnyBasicUnitTests
         virtual const std::type_info& type() const = 0;
     };
 
+    template <class T>
+    bool defaultEquals(const T& lhs, const T& rhs)
+    {
+        return (lhs == rhs);
+    }
+    template <typename T>
+    bool defaultLess(const T& lhs, const T& rhs)
+    {
+        return (lhs < rhs);
+    }
+
     template<template<typename>class Derived, typename ValueType>
     class less_than_equals : public placeholder
     {
@@ -223,13 +234,15 @@ namespace AnyBasicUnitTests
         {
             // safe - types match
             const Derived<ValueType>* otherType = static_cast<const Derived<ValueType>*>(&other);
-            return (static_cast<const Derived<ValueType>*>(this)->v == otherType->v );
+            //return (static_cast<const Derived<ValueType>*>(this)->v == otherType->v );
+            return defaultEquals(static_cast<const Derived<ValueType>*>(this)->v, otherType->v);
         }
         virtual bool less(const placeholder& other) const
         {
             // safe - types match
             const Derived<ValueType>* otherType = static_cast<const Derived<ValueType>*>(&other);
-            return (static_cast<const Derived<ValueType>*>(this)->v < otherType->v );
+            //return (static_cast<const Derived<ValueType>*>(this)->v < otherType->v );
+            return defaultLess(static_cast<const Derived<ValueType>*>(this)->v, otherType->v);
         }
     };
 
@@ -241,6 +254,7 @@ namespace AnyBasicUnitTests
     class Derived : public value_type_operations<Derived, ValueType>
     {
     public:
+        typedef ValueType V2;
         Derived(const ValueType& t)
             : v(t)
         {}
@@ -276,8 +290,19 @@ namespace AnyBasicUnitTests
         }
     };
 
+    template<>
+    bool defaultEquals<NonStreamable>(const NonStreamable& lhs, const NonStreamable& rhs)
+    {
+        return (lhs.value == rhs.value);
+    }
+    template<>
+    bool defaultLess<NonStreamable>(const NonStreamable& lhs, const NonStreamable& rhs)
+    {
+        return (lhs.value < rhs.value);
+    }
+
     template<template<typename>class Derived>
-    class value_type_operations<Derived, NonStreamable> : public placeholder
+    class value_type_operations<Derived, NonStreamable> : public less_than_equals< Derived, NonStreamable >
     {
     public:
         // methods within Base can use template to access members of Derived
@@ -285,27 +310,158 @@ namespace AnyBasicUnitTests
         {
             os << "NonStreamable:" << static_cast<Derived<NonStreamable>*>(this)->v.value;
         }
-        virtual bool equals(const placeholder& other) const
+    };
+
+    /*typedef char no[2];
+    template<typename T> no& operator == (const T&, const T&);
+
+    template <typename T>
+    struct opEqualExists
+    {
+        static const bool value = (sizeof(*(T*)(0) == *(T*)(0)) != sizeof(no));
+    };*/
+    template <bool B, class T = void>
+    struct enable_if_c {
+      typedef bool type;
+    };
+
+    /*template <class T>
+    typename enable_if_c<opEqualExists<T>::value, T>::type 
+    defaultEquals(const T& lhs, const T& rhs)
+    {
+        return (lhs == rhs);
+    }*/
+    struct not_comparable
+    {
+        static const bool equals = false;
+        static const bool less_than = false;
+    };
+    struct equality_comparable
+    {
+        static const bool equals = true;
+        static const bool less_than = false;
+        template <typename T>
+        static bool operator_equals(const T& lhs, const T& rhs)
         {
-            // safe - types match
-            if( other.type() == typeid(NonStreamable) && this->type() == typeid(NonStreamable) )
-            {
-                const Derived<NonStreamable>* otherType = static_cast<const Derived<NonStreamable>*>(&other);
-                return (static_cast<const Derived<NonStreamable>*>(this)->v.value == otherType->v.value );
-            }
-            return false;
-        }
-        virtual bool less(const placeholder& other) const
-        {
-            // safe - types match
-            if( other.type() == typeid(NonStreamable) && this->type() == typeid(NonStreamable) )
-            {
-                const Derived<NonStreamable>* otherType = static_cast<const Derived<NonStreamable>*>(&other);
-                return (static_cast<const Derived<NonStreamable>*>(this)->v.value < otherType->v.value );
-            }
-            return false;
+            return (lhs == rhs);
         }
     };
+    struct less_than_comparable
+    {
+        static const bool equals = false;
+        static const bool less_than = true;
+        template <typename T>
+        static bool operator_less(const T& lhs, const T& rhs)
+        {
+            return (lhs < rhs);
+        }
+    };
+    struct less_than_equals_comparable : public equality_comparable, public less_than_comparable
+    {
+        static const bool equals = true;
+        static const bool less_than = true;
+    };
+
+    template <typename Derived, typename Interface, typename Comparable>
+    class placeholder2;
+
+    template <typename Derived, typename Interface>
+    class placeholder2<Derived, Interface, less_than_equals_comparable> : public Interface
+    {
+    public:
+        virtual ~placeholder2() {}
+        virtual bool equals(const placeholder2& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return less_than_equals_comparable::operator_equals(static_cast<const Derived*>(this)->held, otherType->held);
+        }
+        virtual bool less(const placeholder2& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return less_than_equals_comparable::operator_less(static_cast<const Derived*>(this)->held, otherType->held);
+        }
+    };
+    template <typename Derived, typename Interface>
+    class placeholder2<Derived, Interface, equality_comparable> : public Interface
+    {
+    public:
+        virtual ~placeholder2() {}
+        virtual bool equals(const placeholder2& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return less_than_equals_comparable::operator_equals(static_cast<const Derived*>(this)->held, otherType->held);
+        }
+    };
+    template <typename Derived, typename Interface>
+    class placeholder2<Derived, Interface, less_than_comparable> : public Interface
+    {
+    public:
+        virtual ~placeholder2() {}
+        virtual bool less(const placeholder2& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return less_than_equals_comparable::operator_less(static_cast<const Derived*>(this)->held, otherType->held);
+        }
+    };
+    template <typename Derived, typename Interface>
+    class placeholder2<Derived, Interface, not_comparable> : public Interface
+    {
+    public:
+        virtual ~placeholder2() {}
+    };
+    template <typename Interface, typename T>
+    class less_than_equals2 : public placeholder2<less_than_equals2<Interface, T>, Interface, T>
+    {
+    public:
+        less_than_equals2(int v)
+            : held(v)
+        {}
+        virtual void print(std::ostream&)
+        {
+        }
+        NonStreamable held;
+    };
+
+    template <typename I0 = af::null_base<0>, typename I1 = af::null_base<1>, typename I2 = af::null_base<2>, typename I3 = af::null_base<3>, typename I4 = af::null_base<4>, typename I5 = af::null_base<5>, typename I6 = af::null_base<6> >
+    struct interfaces : public I0, public I1, public I2, public I3, public I4, public I5, public I6
+    {};
+    template <typename Interface = interfaces<>, typename Comparable = less_than_equals_comparable>
+    struct AnyTest
+    {
+        static const bool eq = Comparable::equals;
+        static const bool lt = Comparable::less_than;
+        AnyTest(int v)
+            : p(new less_than_equals2<Interface, Comparable>(v))
+        {}
+        ~AnyTest()
+        { delete p;}
+        typename enable_if_c<eq>::type 
+        friend operator==(const AnyTest& lhs, const AnyTest& rhs)
+        {
+            return lhs.p->equals(*rhs.p);
+        }
+        typename enable_if_c<lt>::type 
+        friend operator<(const AnyTest& lhs, const AnyTest& rhs)
+        {
+            return lhs.p->less(*rhs.p);
+        }
+        virtual void print(std::ostream& oss)
+        {
+            p->print(oss);
+        }
+        less_than_equals2<Interface, Comparable>* p;
+    };
+
+    template<>
+    bool equality_comparable::operator_equals<NonStreamable>(const NonStreamable& lhs, const NonStreamable& rhs)
+    {
+        return (lhs.value == rhs.value);
+    }
+    template<>
+    bool less_than_comparable::operator_less<NonStreamable>(const NonStreamable& lhs, const NonStreamable& rhs)
+    {
+        return (lhs.value < rhs.value);
+    }
 
     TEST_CASE("3","")
     {
@@ -330,5 +486,36 @@ namespace AnyBasicUnitTests
         std::ostringstream oss;
         v.print(oss);
         REQUIRE(oss.str() == "NonStreamable:42");
+
+        AnyTest<interfaces<I0>, not_comparable> a1(4);
+        AnyTest<interfaces<I0>, not_comparable> a2(7);
+        a1.print(oss);
+        //REQUIRE(a1 < a2);
+        //REQUIRE(a1 == a2);
+
+        AnyTest<interfaces<I0> > a3(4);
+        AnyTest<interfaces<I0> > a4(7);
+        AnyTest<interfaces<I0> > a5(7);
+        a3.print(oss);
+        REQUIRE(a3 < a4);
+        REQUIRE(a4 == a5);
+
+        AnyTest<interfaces<I0>, less_than_comparable> a31(4);
+        AnyTest<interfaces<I0>, less_than_comparable> a41(7);
+        a31.print(oss);
+        REQUIRE(a31 < a41);
+        //REQUIRE(a31 == a41);
+
+        AnyTest<interfaces<I0>, equality_comparable> a32(7);
+        AnyTest<interfaces<I0>, equality_comparable> a42(7);
+        a32.print(oss);
+        //REQUIRE(a32 < a42);
+        REQUIRE(a32 == a42);
+
+        AnyTest<> a33(4);
+        AnyTest<> a43(7);
+        AnyTest<> a53(7);
+        REQUIRE(a33 < a43);
+        REQUIRE(a43 == a53);
     }
 }

@@ -135,7 +135,7 @@ namespace any_facade
     {
         // CRTP base class has access to 'content'
         friend class forwarder<any<I0,I1,I2,I3,I4,I5,I6> >;
-    private:
+    public:
         class placeholder : public I0, public I1, public I2, public I3, public I4, public I5, public I6
         {
         public: // structors
@@ -146,6 +146,25 @@ namespace any_facade
             virtual type_info<any> type() const  = 0;
             virtual bool equals(const placeholder& other) const = 0;
             virtual bool less(const placeholder& other) const = 0;
+        };
+
+    private:
+        template<template<typename>class Derived, typename ValueType>
+        class less_than_equals : public placeholder
+        {
+        public:
+            virtual bool equals(const placeholder& other) const
+            {
+                // safe - types match
+                const Derived<ValueType>* otherType = static_cast<const Derived<ValueType>*>(&other);
+                return (static_cast<const Derived<ValueType>*>(this)->held == otherType->held );
+            }
+            virtual bool less(const placeholder& other) const
+            {
+                // safe - types match
+                const Derived<ValueType>* otherType = static_cast<const Derived<ValueType>*>(&other);
+                return (static_cast<const Derived<ValueType>*>(this)->held < otherType->held );
+            }
         };
 
         //
