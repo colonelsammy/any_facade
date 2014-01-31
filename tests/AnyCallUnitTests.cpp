@@ -20,7 +20,7 @@ namespace any_facade
     // (unless you want to use them...)
     //
     template <>
-    class forwarder<any<TestCallInterface> >
+    class forwarder<interfaces<TestCallInterface> >
     {
     public:
         // no methods
@@ -39,13 +39,13 @@ namespace AnyCallUnitTests
 {
     TEST_CASE("Require call zero params call f0", "[call]")
     {
-        af::any<TestCallInterface> a(1);
+        af::any<af::interfaces<TestCallInterface> > a(1);
         REQUIRE(a.call(&TestCallInterface::f0) == 1);
     }
 
     TEST_CASE("Require call one param call f1", "[call]")
     {
-        af::any<TestCallInterface> a(1);
+        af::any<af::interfaces<TestCallInterface> > a(1);
         REQUIRE(a.call(&TestCallInterface::f1, 2) == 3);
     }
 }

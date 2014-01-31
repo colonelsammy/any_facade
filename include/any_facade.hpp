@@ -121,6 +121,102 @@ namespace any_facade
 
 #endif // ANY_FACADE_USE_RTTI
 
+    //
+    // Comparability classes...specialize for specific types as required
+    //
+    struct not_comparable
+    {
+        template <typename T>
+        struct compare
+        {
+            virtual ~compare() {}
+        };
+        template <typename Derived, typename T>
+        struct compare2 : public T
+        {
+        };
+    };
+    //
+    // If your class supports equaility, but doesn't support operator==(), specialize this class...
+    //
+    struct equality_comparable
+    {
+        template <typename T>
+        struct compare
+        {
+            virtual ~compare() {}
+            virtual bool equals(const T& other) const = 0;
+        };
+        template <typename Derived, typename T>
+        struct compare2 : public T
+        {
+            virtual bool equals(const T& other) const
+            {
+                const Derived* otherType = static_cast<const Derived*>(&other);
+                return equality_comparable::equals(static_cast<const Derived*>(this)->value(), otherType->value());
+            }
+        };
+        template <typename T>
+        static bool equals(const T& lhs, const T& rhs)
+        {
+            return (lhs == rhs);
+        }
+    };
+    //
+    // If your class supports less, but doesn't support operator<(), specialize this class...
+    //
+    struct less_than_comparable
+    {
+        template <typename T>
+        struct compare
+        {
+            virtual ~compare() {}
+            virtual bool less(const T& other) const = 0;
+        };
+        template <typename Derived, typename T>
+        struct compare2 : public T
+        {
+            virtual bool less(const T& other) const
+            {
+                const Derived* otherType = static_cast<const Derived*>(&other);
+                return less_than_comparable::less(static_cast<const Derived*>(this)->value(), otherType->value());
+            }
+        };
+        template <typename T>
+        static bool less(const T& lhs, const T& rhs)
+        {
+            return (lhs < rhs);
+        }
+    };
+    //
+    // comparability for equals and less...
+    //
+    struct less_than_equals_comparable : public equality_comparable, public less_than_comparable
+    {
+        template <typename T>
+        struct compare : public equality_comparable::compare<T>, public less_than_comparable::compare<T>
+        {
+            //virtual ~compare() {}
+            //virtual bool equals(const T& other) const = 0;
+            //virtual bool less(const T& other) const = 0;
+        };
+        template <typename Derived, typename T>
+        struct compare2 : public T
+        //struct compare2 : public equality_comparable::compare2<Derived, T>, public less_than_comparable::compare2<Derived, T>
+        {
+            virtual bool equals(const T& other) const
+            {
+                const Derived* otherType = static_cast<const Derived*>(&other);
+                return equality_comparable::equals(static_cast<const Derived*>(this)->value(), otherType->value());
+            }
+            virtual bool less(const T& other) const
+            {
+                const Derived* otherType = static_cast<const Derived*>(&other);
+                return less_than_comparable::less(static_cast<const Derived*>(this)->value(), otherType->value());
+            }
+        };
+    };
+
     template <typename Derived, typename Base, typename ValueType>
     class value_type_operations;
 
@@ -130,59 +226,106 @@ namespace any_facade
     template <int N>
     struct null_base { virtual ~null_base() {} };
 
-    template <typename I0 = null_base<0>, typename I1 = null_base<1>, typename I2 = null_base<2>, typename I3 = null_base<3>, typename I4 = null_base<4>, typename I5 = null_base<5>, typename I6 = null_base<6> >
-    class any : public forwarder<any<I0,I1,I2,I3,I4,I5,I6> >
+    template <typename I0 = null_base<0>,
+                typename I1 = null_base<1>,
+                typename I2 = null_base<2>,
+                typename I3 = null_base<3>,
+                typename I4 = null_base<4>,
+                typename I5 = null_base<5>,
+                typename I6 = null_base<6> >
+    struct interfaces : public I0, public I1, public I2, public I3, public I4, public I5, public I6
+    {};
+
+    //template <typename Interface, typename Comparable>
+    //class placeholder2;
+
+    template <typename Interface, typename Comparable>
+    class any;
+        template <typename Interface, typename Comparable>
+    class placeholder;
+
+    template <typename Interface, typename Comparable>
+    class placeholder : public Interface, public Comparable::template compare<placeholder<Interface,Comparable> >
+    {
+    public: // structors
+        virtual ~placeholder() {}
+    public: // queries
+        virtual type_info<any<Interface, Comparable> > type() const  = 0;
+        virtual placeholder<Interface, Comparable> * clone() const = 0;
+    };
+
+    template <typename Derived, typename Interface, typename Comparable>
+    class less_than_equals : public placeholder<Interface, Comparable>
+    {
+    };
+
+    template <typename Derived, typename Interface>
+    class less_than_equals<Derived, Interface, less_than_equals_comparable> : public less_than_equals_comparable::compare2<Derived, placeholder<Interface, less_than_equals_comparable> >
+    {
+    public:
+        /*virtual bool equals(const placeholder<Interface, less_than_equals_comparable>& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return less_than_equals_comparable::equals(static_cast<const Derived*>(this)->held, otherType->held);
+        }
+        virtual bool less(const placeholder<Interface, less_than_equals_comparable>& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return less_than_equals_comparable::less(static_cast<const Derived*>(this)->held, otherType->held);
+        }*/
+    };
+
+    template <typename Derived, typename Interface>
+    class less_than_equals<Derived, Interface, less_than_comparable> : public less_than_comparable::compare2<Derived, placeholder<Interface, less_than_comparable> >
+    {
+    public:
+        /*virtual bool less(const placeholder<Interface, less_than_comparable>& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return less_than_comparable::less(static_cast<const Derived*>(this)->held, otherType->held);
+        }*/
+    };
+
+    template <typename Derived, typename Interface>
+    class less_than_equals<Derived, Interface, equality_comparable> : public equality_comparable::compare2<Derived, placeholder<Interface, equality_comparable> >
+    {
+    public:
+        /*virtual bool equals(const placeholder<Interface, equality_comparable>& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return equality_comparable::equals(static_cast<const Derived*>(this)->held, otherType->held);
+        }*/
+    };
+
+    template <typename Interface = interfaces<>, typename Comparable = less_than_equals_comparable>
+    class any : public forwarder<Interface>
     {
         // CRTP base class has access to 'content'
-        friend class forwarder<any<I0,I1,I2,I3,I4,I5,I6> >;
+        friend class forwarder<Interface>;
     public:
-        class placeholder : public I0, public I1, public I2, public I3, public I4, public I5, public I6
-        {
-        public: // structors
-            virtual ~placeholder() {}
-        public: // queries
-
-            virtual placeholder * clone() const = 0;
-            virtual type_info<any> type() const  = 0;
-            virtual bool equals(const placeholder& other) const = 0;
-            virtual bool less(const placeholder& other) const = 0;
-        };
-
     private:
-        template<template<typename>class Derived, typename ValueType>
-        class less_than_equals : public placeholder
-        {
-        public:
-            virtual bool equals(const placeholder& other) const
-            {
-                // safe - types match
-                const Derived<ValueType>* otherType = static_cast<const Derived<ValueType>*>(&other);
-                return (static_cast<const Derived<ValueType>*>(this)->held == otherType->held );
-            }
-            virtual bool less(const placeholder& other) const
-            {
-                // safe - types match
-                const Derived<ValueType>* otherType = static_cast<const Derived<ValueType>*>(&other);
-                return (static_cast<const Derived<ValueType>*>(this)->held < otherType->held );
-            }
-        };
 
         //
         // This has to be the most derived class so that 'clone' doesn't slice,
         // so we use CRTP to enforce this condition
         //
         template<typename T>
-        class holder : public value_type_operations<holder<T>, placeholder, T>
+        class holder : public value_type_operations<holder<T>, less_than_equals<holder<T>, Interface, Comparable>, T>
+        //class holder : public value_type_operations<holder<T>, typename Comparable::compare2<holder<T>, placeholder<Interface,Comparable> >, T>
         {
             // CRTP base class has access to 'held'
-            friend class value_type_operations<holder<T>, placeholder, T>;
+            friend class value_type_operations<holder<T>, less_than_equals<holder<T>, Interface, Comparable>, T>;
+            friend class less_than_equals<holder<T>, Interface, Comparable>;
+            //friend class Comparable::compare2<holder<T>, Interface>;
         public: // structors
             typedef T ValueType;
 
-            explicit holder(const ValueType & value)
-                : held(value)
+            explicit holder(const ValueType & v)
+                : held(v)
             {
             }
+
+            ValueType value() const { return held; }
 
         public: // queries
 
@@ -190,11 +333,11 @@ namespace any_facade
             {
                 return type_info<any>::template type_id<ValueType>();
             }
-            virtual placeholder * clone() const
+            virtual placeholder<Interface, Comparable> * clone() const
             {
                 return new holder(*this);
             }
-            virtual bool equals(const placeholder& other) const
+            /*virtual bool equals(const placeholder& other) const
             {
                 // safe - types match
                 const holder<ValueType>* rhs = static_cast<const holder<ValueType>*>(&other);
@@ -205,7 +348,7 @@ namespace any_facade
                 // safe - types match
                 const holder<ValueType>* rhs = static_cast<const holder<ValueType>*>(&other);
                 return (held < rhs->held);
-            }
+            }*/
 
         private: // intentionally left unimplemented
             holder & operator=(const holder &);
@@ -423,7 +566,7 @@ namespace any_facade
 
     private: // representation
 
-        placeholder * content;
+        placeholder<Interface, Comparable> * content;
     };
 
 }

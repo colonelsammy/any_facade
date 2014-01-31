@@ -26,16 +26,39 @@ namespace
         {}
         int value;
     };
+    struct NonStreamable2
+    {
+        NonStreamable2(int v)
+            : value(v)
+        {}
+        int value;
+    };
 }
 
 namespace any_facade
 {
+    template<>
+    bool equality_comparable::equals<NonStreamable>(const NonStreamable& lhs, const NonStreamable& rhs)
+    {
+        return (lhs.value == rhs.value);
+    }
+    template<>
+    bool less_than_comparable::less<NonStreamable>(const NonStreamable& lhs, const NonStreamable& rhs)
+    {
+        return (lhs.value < rhs.value);
+    }
+    template<>
+    bool equality_comparable::equals<NonStreamable2>(const NonStreamable2& lhs, const NonStreamable2& rhs)
+    {
+        return (lhs.value == rhs.value);
+    }
+
     //
     // forwarder<any<...> > doesn't *need* any methods defined....
     // (unless you want to use them...)
     //
     template <>
-    class forwarder<any<TestInterface1> >
+    class forwarder<interfaces<TestInterface1> >
     {
     public:
         // no methods
@@ -46,12 +69,12 @@ namespace any_facade
     // ensures that changes to the interface will get caught by the compiler
     //
     template <>
-    class forwarder<any<TestInterface2> > : public TestInterface2
+    class forwarder<interfaces<TestInterface2> > : public TestInterface2
     {
     public:
         void print(std::ostream& os) const
         {
-            static_cast<const any<TestInterface2>*>(this)->content->print(os);
+            static_cast<const any<interfaces<TestInterface2> >*>(this)->content->print(os);
         }
     };
 
@@ -80,21 +103,21 @@ namespace AnyBasicUnitTests
 {
     TEST_CASE("Require default any is empty", "[any]")
     {
-        af::any<TestInterface1> a;
+        af::any<af::interfaces<TestInterface1> > a;
         REQUIRE(a.empty());
     }
 
     TEST_CASE("Require any not empty after value type construction", "[any]")
     {
         std::string v("42");
-        af::any<TestInterface1> a(v);
+        af::any<af::interfaces<TestInterface1> > a(v);
         REQUIRE(!a.empty());
     }
 
     TEST_CASE("Require any returns correct value", "[any]")
     {
         std::string v("42");
-        af::any<TestInterface2> a(v);
+        af::any<af::interfaces<TestInterface2> > a(v);
         std::ostringstream oss;
         a.print(oss);
         REQUIRE(oss.str() == "42");
@@ -111,9 +134,9 @@ namespace AnyBasicUnitTests
 
     TEST_CASE("Require int values compare", "[any]")
     {
-        af::any<TestInterface1> a(42);
-        af::any<TestInterface1> b(666);
-        af::any<TestInterface1> c(a);
+        af::any<af::interfaces<TestInterface1> > a(42);
+        af::any<af::interfaces<TestInterface1> > b(666);
+        af::any<af::interfaces<TestInterface1> > c(a);
         REQUIRE(a == c);
         REQUIRE(a != b);
         REQUIRE(b != c);
@@ -142,8 +165,8 @@ namespace AnyBasicUnitTests
 
     TEST_CASE("Require different types compare", "[any]")
     {
-        af::any<TestInterface1> a(42);
-        af::any<TestInterface1> b(42.0);
+        af::any<af::interfaces<TestInterface1> > a(42);
+        af::any<af::interfaces<TestInterface1> > b(42.0);
         REQUIRE(a != b);
         REQUIRE(a != 42.0);
         REQUIRE(42.0 != a);
@@ -157,7 +180,7 @@ namespace AnyBasicUnitTests
 
     TEST_CASE("Require any works in map", "[any]")
     {
-        typedef af::any<TestInterface2> Any;
+        typedef af::any<af::interfaces<TestInterface2> > Any;
         std::map<Any, std::string> m;
         m.insert(std::make_pair(Any(42), "42"));
         m.insert(std::make_pair(Any(666), "666"));
@@ -177,7 +200,7 @@ namespace AnyBasicUnitTests
 
     TEST_CASE("Require any can be sorted", "[any]")
     {
-        typedef af::any<TestInterface2> Any;
+        typedef af::any<af::interfaces<TestInterface2> > Any;
         std::vector<Any> v;
         v.push_back(Any(5));
         v.push_back(Any(7));
@@ -320,128 +343,183 @@ namespace AnyBasicUnitTests
     {
         static const bool value = (sizeof(*(T*)(0) == *(T*)(0)) != sizeof(no));
     };*/
-    template <bool B, class T = void>
+    /*template <bool B, class T = void>
     struct enable_if_c {
       typedef bool type;
+    };*/
+    /*template <>
+    struct enable_if_c<false> {
+    };*/
+
+    /*template <typename T, typename U>
+    struct has_equals {
+        typedef char yes[1];
+        typedef char no[2];
+ 
+        template <typename C, bool (*)(const U&, const U&)> struct ptmf_helper {};
+
+        template <typename C>
+        static yes& has_member_helper(ptmf_helper<C, &C::equals>*);
+ 
+        template<typename> static no& has_member_helper(...);
+ 
+        static const bool value = sizeof(has_member_helper<T>(0)) == sizeof(yes);
     };
 
+    template <typename T, typename U>
+    struct has_less_than {
+        typedef char yes[1];
+        typedef char no[2];
+ 
+        template <typename C, bool (*)(const U&, const U&)> struct ptmf_helper {};
+
+        template <typename C>
+        static yes& has_member_helper(ptmf_helper<C, &C::less>*);
+ 
+        template<typename> static no& has_member_helper(...);
+ 
+        static const bool value = sizeof(has_member_helper<T>(0)) == sizeof(yes);
+    };*/
+
+    /*
+    template <typename T, void (T::*)(std::vector<unsigned char>& data) const> struct ptmf_helper {};
+    template<typename T> no_tag has_member_helper_readTransducerData(...);
+
+    template<typename T>
+    yes_tag has_member_helper_readTransducerData(ptmf_helper<T, &T::readTransducerData>* p);
+
+    template<typename T> struct has_member_readTransducerData
+    {
+        static const bool value = sizeof(has_member_helper_readTransducerData<T>(0)) == sizeof(yes_tag);
+    };
+    */
     /*template <class T>
     typename enable_if_c<opEqualExists<T>::value, T>::type 
     defaultEquals(const T& lhs, const T& rhs)
     {
         return (lhs == rhs);
     }*/
-    struct not_comparable
-    {
-        static const bool equals = false;
-        static const bool less_than = false;
-    };
-    struct equality_comparable
-    {
-        static const bool equals = true;
-        static const bool less_than = false;
-        template <typename T>
-        static bool operator_equals(const T& lhs, const T& rhs)
-        {
-            return (lhs == rhs);
-        }
-    };
-    struct less_than_comparable
-    {
-        static const bool equals = false;
-        static const bool less_than = true;
-        template <typename T>
-        static bool operator_less(const T& lhs, const T& rhs)
-        {
-            return (lhs < rhs);
-        }
-    };
-    struct less_than_equals_comparable : public equality_comparable, public less_than_comparable
-    {
-        static const bool equals = true;
-        static const bool less_than = true;
-    };
 
-    template <typename Derived, typename Interface, typename Comparable>
+    /*using af::less_than_equals_comparable;
+    using af::equality_comparable;
+    using af::less_than_comparable;
+    using af::not_comparable;
+
+    template <typename Interface, typename Comparable>
     class placeholder2;
 
-    template <typename Derived, typename Interface>
-    class placeholder2<Derived, Interface, less_than_equals_comparable> : public Interface
+    template <typename Interface>
+    class placeholder2<Interface, less_than_equals_comparable> : public Interface
     {
     public:
         virtual ~placeholder2() {}
-        virtual bool equals(const placeholder2& other) const
-        {
-            const Derived* otherType = static_cast<const Derived*>(&other);
-            return less_than_equals_comparable::operator_equals(static_cast<const Derived*>(this)->held, otherType->held);
-        }
-        virtual bool less(const placeholder2& other) const
-        {
-            const Derived* otherType = static_cast<const Derived*>(&other);
-            return less_than_equals_comparable::operator_less(static_cast<const Derived*>(this)->held, otherType->held);
-        }
+        virtual bool equals(const placeholder2& other) const = 0;
+        virtual bool less(const placeholder2& other) const = 0;
     };
-    template <typename Derived, typename Interface>
-    class placeholder2<Derived, Interface, equality_comparable> : public Interface
+    template <typename Interface>
+    class placeholder2<Interface, equality_comparable> : public Interface
     {
     public:
         virtual ~placeholder2() {}
-        virtual bool equals(const placeholder2& other) const
-        {
-            const Derived* otherType = static_cast<const Derived*>(&other);
-            return less_than_equals_comparable::operator_equals(static_cast<const Derived*>(this)->held, otherType->held);
-        }
+        virtual bool equals(const placeholder2& other) const = 0;
     };
-    template <typename Derived, typename Interface>
-    class placeholder2<Derived, Interface, less_than_comparable> : public Interface
+    template <typename Interface>
+    class placeholder2<Interface, less_than_comparable> : public Interface
     {
     public:
         virtual ~placeholder2() {}
-        virtual bool less(const placeholder2& other) const
-        {
-            const Derived* otherType = static_cast<const Derived*>(&other);
-            return less_than_equals_comparable::operator_less(static_cast<const Derived*>(this)->held, otherType->held);
-        }
-    };
-    template <typename Derived, typename Interface>
-    class placeholder2<Derived, Interface, not_comparable> : public Interface
-    {
-    public:
-        virtual ~placeholder2() {}
-    };
-    template <typename Interface, typename T>
-    class less_than_equals2 : public placeholder2<less_than_equals2<Interface, T>, Interface, T>
-    {
-    public:
-        less_than_equals2(int v)
-            : held(v)
-        {}
-        virtual void print(std::ostream&)
-        {
-        }
-        NonStreamable held;
+        virtual bool less(const placeholder2& other) const = 0;
     };
 
-    template <typename I0 = af::null_base<0>, typename I1 = af::null_base<1>, typename I2 = af::null_base<2>, typename I3 = af::null_base<3>, typename I4 = af::null_base<4>, typename I5 = af::null_base<5>, typename I6 = af::null_base<6> >
-    struct interfaces : public I0, public I1, public I2, public I3, public I4, public I5, public I6
-    {};
-    template <typename Interface = interfaces<>, typename Comparable = less_than_equals_comparable>
+    template <typename Interface>
+    class placeholder2<Interface, not_comparable> : public Interface
+    {
+    public:
+        virtual ~placeholder2() {}
+    };*/
+
+    template <typename Derived, typename Interface, typename Comparable>
+    class holder2;
+
+    template <typename Derived, typename Interface>
+    class holder2<Derived, Interface, af::less_than_equals_comparable> : public af::placeholder<Interface, af::less_than_equals_comparable>
+    {
+    public:
+        virtual bool equals(const af::placeholder<Interface, af::less_than_equals_comparable>& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return af::less_than_equals_comparable::equals(static_cast<const Derived*>(this)->held, otherType->held);
+        }
+        virtual bool less(const af::placeholder<Interface, af::less_than_equals_comparable>& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return af::less_than_equals_comparable::less(static_cast<const Derived*>(this)->held, otherType->held);
+        }
+    };
+
+    template <typename Derived, typename Interface>
+    class holder2<Derived, Interface, af::less_than_comparable> : public af::placeholder<Interface, af::less_than_comparable>
+    {
+    public:
+        virtual bool less(const af::placeholder<Interface, af::less_than_comparable>& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return af::less_than_comparable::less(static_cast<const Derived*>(this)->held, otherType->held);
+        }
+    };
+
+    template <typename Derived, typename Interface>
+    class holder2<Derived, Interface, af::equality_comparable> : public af::placeholder<Interface, af::equality_comparable>
+    {
+    public:
+        virtual bool equals(const af::placeholder<Interface, af::equality_comparable>& other) const
+        {
+            const Derived* otherType = static_cast<const Derived*>(&other);
+            return af::equality_comparable::equals(static_cast<const Derived*>(this)->held, otherType->held);
+        }
+    };
+
+    template <typename Interface, typename Comparable, typename ValueType>
+    class holder : public holder2<holder<Interface, Comparable, ValueType>, Interface, Comparable>
+    {
+    public:
+        holder(ValueType v)
+            : held(v)
+        {}
+        virtual void print(std::ostream&) const
+        {
+        }
+        virtual af::type_info<af::any<Interface,Comparable> > type() const
+        {
+            return af::type_info<af::any<Interface,Comparable> >::template type_id<ValueType>();
+        }
+        virtual af::placeholder<Interface, Comparable> * clone() const
+        {
+            return new holder(*this);
+        }
+        ValueType held;
+    };
+
+    template <typename Interface = af::interfaces<>, typename Comparable = af::less_than_equals_comparable>
     struct AnyTest
     {
-        static const bool eq = Comparable::equals;
-        static const bool lt = Comparable::less_than;
-        AnyTest(int v)
-            : p(new less_than_equals2<Interface, Comparable>(v))
-        {}
+        //static const bool eq = Comparable::equals;
+        //static const bool lt = Comparable::less_than;
+        //static const bool eq = has_equals<Comparable, AnyTest>::value;
+        //static const bool lt = has_less_than<Comparable, AnyTest>::value;
+        template <typename ValueType>
+        AnyTest(const ValueType& v)
+            : p(new holder<Interface, Comparable, ValueType>(v))
+        {
+        }
         ~AnyTest()
         { delete p;}
-        typename enable_if_c<eq>::type 
-        friend operator==(const AnyTest& lhs, const AnyTest& rhs)
+
+        friend bool operator==(const AnyTest& lhs, const AnyTest& rhs)
         {
             return lhs.p->equals(*rhs.p);
         }
-        typename enable_if_c<lt>::type 
-        friend operator<(const AnyTest& lhs, const AnyTest& rhs)
+        friend bool operator<(const AnyTest& lhs, const AnyTest& rhs)
         {
             return lhs.p->less(*rhs.p);
         }
@@ -449,19 +527,8 @@ namespace AnyBasicUnitTests
         {
             p->print(oss);
         }
-        less_than_equals2<Interface, Comparable>* p;
+        af::placeholder<Interface, Comparable>* p;
     };
-
-    template<>
-    bool equality_comparable::operator_equals<NonStreamable>(const NonStreamable& lhs, const NonStreamable& rhs)
-    {
-        return (lhs.value == rhs.value);
-    }
-    template<>
-    bool less_than_comparable::operator_less<NonStreamable>(const NonStreamable& lhs, const NonStreamable& rhs)
-    {
-        return (lhs.value < rhs.value);
-    }
 
     TEST_CASE("3","")
     {
@@ -487,35 +554,41 @@ namespace AnyBasicUnitTests
         v.print(oss);
         REQUIRE(oss.str() == "NonStreamable:42");
 
-        AnyTest<interfaces<I0>, not_comparable> a1(4);
-        AnyTest<interfaces<I0>, not_comparable> a2(7);
+        af::any<af::interfaces<TestInterface2>, af::not_comparable> a1(4);
+        af::any<af::interfaces<TestInterface2>, af::not_comparable> a2(7);
         a1.print(oss);
         //REQUIRE(a1 < a2);
         //REQUIRE(a1 == a2);
 
-        AnyTest<interfaces<I0> > a3(4);
-        AnyTest<interfaces<I0> > a4(7);
-        AnyTest<interfaces<I0> > a5(7);
+        af::any<af::interfaces<TestInterface2> > a3(4);
+        af::any<af::interfaces<TestInterface2> > a4(7);
+        af::any<af::interfaces<TestInterface2> > a5(7);
         a3.print(oss);
         REQUIRE(a3 < a4);
-        REQUIRE(a4 == a5);
+        //REQUIRE(a4 == a5);
 
-        AnyTest<interfaces<I0>, less_than_comparable> a31(4);
-        AnyTest<interfaces<I0>, less_than_comparable> a41(7);
+        af::any<af::interfaces<TestInterface2>, af::less_than_comparable> a31(4);
+        af::any<af::interfaces<TestInterface2>, af::less_than_comparable> a41(7);
         a31.print(oss);
         REQUIRE(a31 < a41);
         //REQUIRE(a31 == a41);
 
-        AnyTest<interfaces<I0>, equality_comparable> a32(7);
-        AnyTest<interfaces<I0>, equality_comparable> a42(7);
+        af::any<af::interfaces<TestInterface2>, af::equality_comparable> a32(NonStreamable(7));
+        af::any<af::interfaces<TestInterface2>, af::equality_comparable> a42(NonStreamable(7));
         a32.print(oss);
         //REQUIRE(a32 < a42);
         REQUIRE(a32 == a42);
 
-        AnyTest<> a33(4);
-        AnyTest<> a43(7);
-        AnyTest<> a53(7);
+        /*af::any<> a33(4);
+        af::any<> a43(7);
+        af::any<> a53(7);
         REQUIRE(a33 < a43);
-        REQUIRE(a43 == a53);
+        REQUIRE(a43 == a53);*/
+
+        AnyTest<af::interfaces<TestInterface2>, af::equality_comparable> x(NonStreamable2(42));
+        AnyTest<af::interfaces<TestInterface2>, af::equality_comparable> y(NonStreamable2(42));
+        REQUIRE(x == y);
+        //REQUIRE(x < y);
     }
+
 }
