@@ -20,7 +20,7 @@ namespace any_facade
     // (unless you want to use them...)
     //
     template <>
-    class forwarder<interfaces<TestCallInterface> >
+    class forwarder<any<interfaces<TestCallInterface> > >
     {
     public:
         // no methods

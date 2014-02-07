@@ -93,6 +93,8 @@
   <ItemGroup>
     <ClCompile Include="..\AnyBasicUnitTests.cpp" />
     <ClCompile Include="..\AnyCallUnitTests.cpp" />
+    <ClCompile Include="..\AnyComparisonUnitTests.cpp" />
+    <ClCompile Include="..\AnyMultipleInterfacesUnitTests.cpp" />
     <ClCompile Include="..\TypeInfoUnitTests.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

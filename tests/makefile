@@ -4,6 +4,8 @@ LDFLAGS=
 SOURCES=main.cpp \
 	AnyBasicUnitTests.cpp \
 	AnyCallUnitTests.cpp \
+	AnyComparisonUnitTests.cpp \
+	AnyMultipleInterfacesUnitTests.cpp \
 	TypeInfoUnitTests.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
