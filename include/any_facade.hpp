@@ -134,6 +134,7 @@ namespace any_facade
         template <typename Derived, typename T>
         struct compare2 : public T
         {
+            typedef T PlaceholderType;
         };
     };
     //
@@ -150,6 +151,7 @@ namespace any_facade
         template <typename Derived, typename T>
         struct compare2 : public T
         {
+            typedef T PlaceholderType;
             virtual bool equals(const T& other) const
             {
                 if( this->type() == other.type() )
@@ -213,6 +215,7 @@ namespace any_facade
         template <typename Derived, typename T>
         struct compare2 : public T
         {
+            typedef T PlaceholderType;
             virtual bool equals(const T& other) const
             {
                 if( this->type() == other.type() )

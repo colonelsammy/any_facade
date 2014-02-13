@@ -10,269 +10,466 @@ namespace af = any_facade;
 namespace
 {
     // Interfaces we want to implement
-    struct Key
+    struct Cell
     {
-        virtual ~Key() {}
-        // nothing else...
+        virtual ~Cell() {}
+        virtual void displayCellLocation(std::ostream&) const = 0;
     };
 
-    struct Geometry
+    struct Calculation
     {
-        virtual ~Geometry() {}
-        virtual int area() const = 0;
-        virtual void move(int x, int y) = 0;
+        virtual ~Calculation() {}
+        virtual int calculate() const = 0;
     };
 
-    struct Printable
+    struct Content
     {
-        virtual ~Printable() {}
-        virtual void print(std::ostream& os) const = 0;
+        virtual ~Content() {}
+        virtual void update(const std::string& s) = 0;
+        virtual void show(std::ostream& os) const = 0;
     };
 
-    class SimpleKey
+    ////////////////////////////////////////
+    // Cell types...
+    //
+    static const int cellsPerRow = 16;
+    
+    // Cell Ids
+    //
+    class CoordinateCellId
     {
     public:
-        SimpleKey(int v)
-            : m_id(v)
+        CoordinateCellId(int x, int y)
+            : m_index(y * cellsPerRow + x)
         {}
-        int m_id;
-        friend bool operator<(const SimpleKey& lhs, const SimpleKey& rhs)
+        int m_index;
+        friend bool operator<(const CoordinateCellId& lhs, const CoordinateCellId& rhs)
         {
-            return (lhs.m_id < rhs.m_id);
+            return (lhs.m_index < rhs.m_index);
+        }
+        virtual void displayCellCoordinates(std::ostream& os) const
+        {
+            os << (m_index % cellsPerRow) << "," << (m_index / cellsPerRow);
         }
     };
 
-    struct TroublesomeKey
+    struct LegacyCellId
     {
-        TroublesomeKey(int v)
-            : m_key(v)
+        LegacyCellId(int index)
+            : m_key(index)
         {}
         int key() const {return m_key;}
+        virtual void displayCellLocation(std::ostream& os) const
+        {
+            os << "[" << m_key << "]";
+        }
     private:
         int m_key;
-        // no < op
+        // operator< not defined
     };
 
-    struct SimpleRectangle
+    // Content types
+    //
+    struct StringCell
     {
-        SimpleRectangle(int x, int y, int width, int height) : m_x(x), m_y(y), m_width(width), m_height(height) {}
-        int m_x;
-        int m_y;
-        int m_width;
-        int m_height;
+        StringCell(const std::string& s) : m_content(s) {}
+        std::string m_content;
 
-        int area() const {return m_width * m_height;}
-        void move(int x, int y) {m_x = x; m_y = y;}
-        friend bool operator==(const SimpleRectangle& lhs, const SimpleRectangle& rhs)
+        int calculate() const
         {
-            return (
-                lhs.m_x == rhs.m_x &&
-                lhs.m_y == rhs.m_y &&
-                lhs.area() == rhs.area() );
+            return 0;
         }
-        friend std::ostream& operator<<(std::ostream& oss, const SimpleRectangle&v)
+        void update(const std::string& s)
         {
-            oss << "Area:" << v.area() << ", x:" << v.m_x << ", y:" << v.m_y;
+            m_content = s;
+        }
+        friend bool operator==(const StringCell& lhs, const StringCell& rhs)
+        {
+            return (lhs.m_content == rhs.m_content);
+        }
+        friend std::ostream& operator<<(std::ostream& oss, const StringCell&v)
+        {
+            oss << v.m_content;
             return oss;
         }
     };
 
-    struct TroublesomeEllipse
+    struct ValueCell
     {
-        TroublesomeEllipse(int x, int y, int width, int height) : m_x(x), m_y(y), m_width(width), m_height(height) {}
-        int m_x;
-        int m_y;
-        int m_width;
-        int m_height;
+        ValueCell(const std::string& s) : m_value(0) {update(s);}
+        int m_value;
 
-        int calcArea() const {return static_cast<int>(3.142159 / 4 * m_width * m_height);}
-        void moveTo(int x, int y) {m_x = x; m_y = y;}
-        void stream(std::ostream& os) const
+        int calculate() const
         {
-            os << "Area:" << calcArea() << ", x:" << m_x << ", y:" << m_y;
+            return m_value;
+        }
+        void update(const std::string& s)
+        {
+            std::istringstream iss(s);
+            iss >> m_value;
+        }
+        friend bool operator==(const ValueCell& lhs, const ValueCell& rhs)
+        {
+            return (lhs.m_value == rhs.m_value);
+        }
+        friend std::ostream& operator<<(std::ostream& oss, const ValueCell&v)
+        {
+            oss << v.m_value;
+            return oss;
+        }
+    };
+
+    struct FormulaCell
+    {
+        FormulaCell(const std::string& s) : m_formula(s) {}
+        std::string m_formula; // simple implementation...
+
+        void parseFormula(const std::string& f) {m_formula = f;}
+        int calculate() const
+        {
+            if( m_formula == "50-8" )
+                return 42;
+            else if( m_formula == "3*9" )
+                return 27;
+            return 0;
+        }
+        void streamValue(std::ostream& os) const
+        {
+            os << calculate();
         }
     };
 
 }
 
+////////////////////////////////////////////////
+// Template implementations and specializations
+//
 namespace any_facade
 {
+    // Implement less for LegacyCellId
     template<>
-    bool less_than_comparable::less<TroublesomeKey>(const TroublesomeKey& lhs, const TroublesomeKey& rhs)
+    bool less_than_comparable::less<LegacyCellId>(const LegacyCellId& lhs, const LegacyCellId& rhs)
     {
-            return (lhs.key() < rhs.key());
+        return (lhs.key() < rhs.key());
     }
 
+    // Implement equals for FormulaCell
     template<>
-    bool equality_comparable::equals<TroublesomeEllipse>(const TroublesomeEllipse& lhs, const TroublesomeEllipse& rhs)
+    bool equality_comparable::equals<FormulaCell>(const FormulaCell& lhs, const FormulaCell& rhs)
     {
-            return (
-                lhs.m_x == rhs.m_x &&
-                lhs.m_y == rhs.m_y &&
-                lhs.calcArea() == rhs.calcArea() );
+        return (lhs.calculate() == rhs.calculate() );
     }
 
+    // Allow any.fn() for Cell interface on CellId keys
     template <>
-    class forwarder<any<interfaces<>, less_than_comparable> >
+    class forwarder<any<interfaces<Cell>, less_than_comparable> > : public Cell
     {
     public:
+        virtual void displayCellLocation(std::ostream& os) const
+        {
+            static_cast<const any<interfaces<Cell>, less_than_comparable>*>(this)->content->displayCellLocation(os);
+        }
     };
 
+    // Allow any.fn() for Calculation and Content interfaces on cell content
     //
     // Method implemented... deriving from the interface is optional but
     // ensures that changes to the interface will get caught by the compiler
     //
     template <>
-    class forwarder<any<interfaces<Geometry, Printable>, equality_comparable> > : public Geometry, Printable
+    class forwarder<any<interfaces<Calculation, Content>, equality_comparable> > : public Calculation, Content
     {
     public:
-        int area() const
+        int calculate() const
         {
-            return static_cast<const any<interfaces<Geometry, Printable>, equality_comparable>*>(this)->content->area();
+            return static_cast<const any<interfaces<Calculation, Content>, equality_comparable>*>(this)->content->calculate();
         }
-        void move(int x, int y)
+
+        void update(const std::string& s)
         {
-            static_cast<any<interfaces<Geometry, Printable>, equality_comparable>*>(this)->content->move(x, y);
+            static_cast<const any<interfaces<Calculation, Content>, equality_comparable>*>(this)->content->update(s);
         }
-        void print(std::ostream& os) const
+        void show(std::ostream& os) const
         {
-            static_cast<const any<interfaces<Geometry, Printable>, equality_comparable>*>(this)->content->print(os);
+            static_cast<const any<interfaces<Calculation, Content>, equality_comparable>*>(this)->content->show(os);
         }
     };
 
+    // Implementation of operations on CoordinateCellId value type
     template <typename Derived, typename Base>
-    class value_type_operations<Derived, Base, SimpleKey> : public Base
+    class value_type_operations<Derived, Base, CoordinateCellId> : public Base
     {
     public:
         typedef typename Base::PlaceholderType PlaceholderType;
         virtual bool less(const PlaceholderType& other) const
         {
-            if( other.type() == type_info<typename Derived::AnyType>::template type_id<TroublesomeKey>())
+            if( other.type() == type_info<typename Derived::AnyType>::template type_id<LegacyCellId>())
             {
-                typedef typename Derived::AnyType::template holder<TroublesomeKey> OtherDerived;
+                typedef typename Derived::AnyType::template holder<LegacyCellId> OtherDerived;
                 // objects of known type...comparison with members
                 const OtherDerived* otherType = static_cast<const OtherDerived*>(&other);
-                return (static_cast<const Derived*>(this)->value().m_id < otherType->value().key());
+                return (static_cast<const Derived*>(this)->value().m_index < otherType->value().key());
             }
             return Base::less(other);
         }
+        virtual void displayCellLocation(std::ostream& os) const
+        {
+            static_cast<const Derived*>(this)->held.displayCellCoordinates(os);
+        }
     };
+
+    // Implementation of operations on LegacyCellId value type
     template <typename Derived, typename Base>
-    class value_type_operations<Derived, Base, TroublesomeKey> : public Base
+    class value_type_operations<Derived, Base, LegacyCellId> : public Base
     {
     public:
         typedef typename Base::PlaceholderType PlaceholderType;
         virtual bool less(const PlaceholderType& other) const
         {
-            if( other.type() == type_info<typename Derived::AnyType>::template type_id<SimpleKey>())
+            if( other.type() == type_info<typename Derived::AnyType>::template type_id<CoordinateCellId>())
             {
-                typedef typename Derived::AnyType::template holder<SimpleKey> OtherDerived;
+                typedef typename Derived::AnyType::template holder<CoordinateCellId> OtherDerived;
                 // objects of known type...comparison with members
                 const OtherDerived* otherType = static_cast<const OtherDerived*>(&other);
-                return (static_cast<const Derived*>(this)->value().key() < otherType->value().m_id);
+                return (static_cast<const Derived*>(this)->value().key() < otherType->value().m_index);
             }
             return Base::less(other);
         }
+        virtual void displayCellLocation(std::ostream& os) const
+        {
+            static_cast<const Derived*>(this)->held.displayCellLocation(os);
+        }
     };
 
-    // Default value type operations - most objects support these...
+    // Implementation of operations on StringCell value type
+    // Default value type operations - StringCell...
     //
     template <typename Derived, typename Base, typename ValueType>
     class value_type_operations : public Base
     {
     public:
-        // Geometry...
-        virtual int area() const
+        typedef typename Base::PlaceholderType PlaceholderType;
+        virtual bool equals(const PlaceholderType& other) const
         {
-            return static_cast<const Derived*>(this)->held.area();;
-        }
-        virtual void move(int x, int y)
-        {
-            static_cast<Derived*>(this)->held.move(x,y);
+            if( other.type() == type_info<typename Derived::AnyType>::template type_id<FormulaCell>())
+            {
+                typedef typename Derived::AnyType::template holder<FormulaCell> OtherDerived;
+                // objects of known type...comparison with calculated value
+                const OtherDerived* otherType = static_cast<const OtherDerived*>(&other);
+                std::ostringstream oss;
+                oss << otherType->calculate();
+                return (static_cast<const Derived*>(this)->value().m_content == oss.str());
+            }
+            else if( other.type() == type_info<typename Derived::AnyType>::template type_id<ValueCell>())
+            {
+                typedef typename Derived::AnyType::template holder<ValueCell> OtherDerived;
+                // objects of known type...comparison with calculated value
+                const OtherDerived* otherType = static_cast<const OtherDerived*>(&other);
+                std::ostringstream oss;
+                oss << otherType->calculate();
+                return (static_cast<const Derived*>(this)->value().m_content == oss.str());
+            }
+            return Base::equals(other);
         }
 
-        // Printable...
-        virtual void print(std::ostream& os) const
+        // Calculation...
+        virtual int calculate() const
+        {
+            return static_cast<const Derived*>(this)->held.calculate();
+        }
+
+        // Content...
+        virtual void update(const std::string& s)
+        {
+            static_cast<Derived*>(this)->held.update(s);;
+        }
+        virtual void show(std::ostream& os) const
         {
             os << static_cast<const Derived*>(this)->held;
         }
     };
 
-    // TroublesomeEllipse needs special treatment...
+    // Implementation of operations on ValueCell value type
+    // valueCell needs special treatment...
     //
     template <typename Derived, typename Base>
-    class value_type_operations<Derived, Base, TroublesomeEllipse> : public Base
+    class value_type_operations<Derived, Base, ValueCell> : public Base
     {
     public:
-        // Geometry...
-        virtual int area() const
+        typedef typename Base::PlaceholderType PlaceholderType;
+        virtual bool equals(const PlaceholderType& other) const
         {
-            return static_cast<const Derived*>(this)->held.calcArea();;
-        }
-        virtual void move(int x, int y)
-        {
-            static_cast<Derived*>(this)->held.moveTo(x,y);
+            if( other.type() == type_info<typename Derived::AnyType>::template type_id<FormulaCell>())
+            {
+                typedef typename Derived::AnyType::template holder<FormulaCell> OtherDerived;
+                // objects of known type...comparison with calculated value
+                const OtherDerived* otherType = static_cast<const OtherDerived*>(&other);
+                return (static_cast<const Derived*>(this)->value().m_value == otherType->calculate());
+            }
+            else if( other.type() == type_info<typename Derived::AnyType>::template type_id<StringCell>())
+            {
+                typedef typename Derived::AnyType::template holder<StringCell> OtherDerived;
+                // objects of known type...comparison with calculated value
+                const OtherDerived* otherType = static_cast<const OtherDerived*>(&other);
+                std::ostringstream oss;
+                oss << calculate();
+                return (oss.str() == otherType->value().m_content);
+            }
+            return Base::equals(other);
         }
 
-        // Printable...
-        virtual void print(std::ostream& os) const
+        // Calculation...
+        virtual int calculate() const
         {
-            os << "Ellipse:";
-            static_cast<const Derived*>(this)->held.stream(os);
+            return static_cast<const Derived*>(this)->held.calculate();
+        }
+
+        // Content...
+        virtual void update(const std::string& s)
+        {
+            static_cast<Derived*>(this)->held.update(s);;
+        }
+        virtual void show(std::ostream& os) const
+        {
+            os << static_cast<const Derived*>(this)->held;
+        }
+    };
+
+    // Implementation of operations on FormulaCell value type
+    // FormulaCell needs special treatment...
+    //
+    template <typename Derived, typename Base>
+    class value_type_operations<Derived, Base, FormulaCell> : public Base
+    {
+    public:
+        typedef typename Base::PlaceholderType PlaceholderType;
+        virtual bool equals(const PlaceholderType& other) const
+        {
+            if( other.type() == type_info<typename Derived::AnyType>::template type_id<StringCell>())
+            {
+                typedef typename Derived::AnyType::template holder<StringCell> OtherDerived;
+                // objects of known type...comparison with calculated value
+                const OtherDerived* otherType = static_cast<const OtherDerived*>(&other);
+                std::ostringstream oss;
+                oss << calculate();
+                return (oss.str() == otherType->value().m_content);
+            }
+            else if( other.type() == type_info<typename Derived::AnyType>::template type_id<ValueCell>())
+            {
+                typedef typename Derived::AnyType::template holder<ValueCell> OtherDerived;
+                // objects of known type...comparison with calculated value
+                const OtherDerived* otherType = static_cast<const OtherDerived*>(&other);
+                return (static_cast<const Derived*>(this)->value().calculate() == otherType->value().m_value);
+            }
+            return Base::equals(other);
+        }
+
+        // Calculation...
+        virtual int calculate() const
+        {
+            return static_cast<const Derived*>(this)->held.calculate();
+        }
+
+        // Content...
+        virtual void update(const std::string& s)
+        {
+            static_cast<Derived*>(this)->held.parseFormula(s);;
+        }
+        virtual void show(std::ostream& os) const
+        {
+            os << "f():";
+            static_cast<const Derived*>(this)->held.streamValue(os);
         }
     };
 }
 
+///////////////////////////////////////////////////////
+// Tests...
 
 namespace AnyMultipleInterfacesUnitTests
 {
-    typedef af::any<af::interfaces<>, af::less_than_comparable> AnyKey;
-    typedef af::any<af::interfaces<Geometry, Printable>, af::equality_comparable> Any;
+    typedef af::any<af::interfaces<Cell>, af::less_than_comparable> CellId;
+    typedef af::any<af::interfaces<Calculation, Content>, af::equality_comparable> Any;
 
-    struct SumAreas : public std::binary_function<int, std::pair<AnyKey,Any>, int>
+    struct SumValues : public std::binary_function<int, std::pair<CellId,Any>, int>
     {
-        int operator()(int total, const std::pair<AnyKey,Any>& elem) const
+        int operator()(int total, const std::pair<CellId,Any>& elem) const
         {
-            return total + elem.second.area();
+            return total + elem.second.calculate();
         }
     };
 
-    TEST_CASE("Require operations work", "[any]")
+    struct CompareContent : public std::unary_function<std::pair<CellId,Any>, bool>
     {
-        std::map<AnyKey,Any> data;
+        explicit CompareContent(const std::pair<CellId,Any>& f)
+            : data(f)
+        {}
+        bool operator()(const std::pair<CellId,Any>& rhs) const
+        {
+            return (data.second == rhs.second);
+        }
+        std::pair<CellId,Any> data;
+    };
+
+    TEST_CASE("Require 'spreadsheet' operations work", "[any]")
+    {
+        std::map<CellId,Any> data;
         
-        data.insert( std::make_pair(TroublesomeKey(1), SimpleRectangle(5, 7, 100, 25))     );
-        data.insert( std::make_pair(TroublesomeKey(2), SimpleRectangle(11, 13, 100, 25))   );
-        data.insert( std::make_pair(SimpleKey(42),TroublesomeEllipse(27, 0, 150, 50)) );
+        data.insert( std::make_pair(LegacyCellId(1), StringCell("first cell"))     );
+        data.insert( std::make_pair(LegacyCellId(2), FormulaCell("50-8"))   );
+        data.insert( std::make_pair(LegacyCellId(3), ValueCell("80"))   );
+        data.insert( std::make_pair(CoordinateCellId(10,2),FormulaCell("")) );
 
         std::ostringstream oss;
-        for( std::map<AnyKey,Any>::const_iterator it = data.begin(); it != data.end(); ++it )
+        for( std::map<CellId,Any>::const_iterator it = data.begin(); it != data.end(); ++it )
         {
-            it->second.print(oss);
+            it->first.displayCellLocation(oss);
             oss << "#";
         }
-        REQUIRE(oss.str() == "Area:2500, x:5, y:7#Area:2500, x:11, y:13#Ellipse:Area:5891, x:27, y:0#");
-        std::map<AnyKey,Any>::iterator f = data.find(SimpleKey(42));
+        REQUIRE(oss.str() == "[1]#[2]#[3]#10,2#");
+        std::map<CellId,Any>::iterator f = data.find(CoordinateCellId(2,0));
         REQUIRE(f != data.end());
-        f->second.move(341,666);
-        REQUIRE(f->second.area() == 5891);
+        REQUIRE(f->second.calculate() == 42);
 
-        f = data.find(SimpleKey(1));
+        f = data.find(CoordinateCellId(1,0));
         REQUIRE(f != data.end());
-        REQUIRE(f->second.area() == 2500);
+        f->second.update("3412");
+        REQUIRE(f->second.calculate() == 0);
 
-        f = data.find(TroublesomeKey(42));
+        f = data.find(LegacyCellId(42));
         REQUIRE(f != data.end());
-        REQUIRE(f->second.area() == 5891);
+        f->second.update("3*9");
+        REQUIRE(f->second.calculate() == 27);
 
         oss.str("");
-        for( std::map<AnyKey,Any>::const_iterator it = data.begin(); it != data.end(); ++it )
+        for( std::map<CellId,Any>::const_iterator it = data.begin(); it != data.end(); ++it )
         {
-            it->second.print(oss);
+            it->second.show(oss);
             oss << "#";
         }
-        REQUIRE(oss.str() == "Area:2500, x:5, y:7#Area:2500, x:11, y:13#Ellipse:Area:5891, x:341, y:666#");
+        REQUIRE(oss.str() == "3412#f():42#80#f():27#");
 
-        REQUIRE(std::accumulate( data.begin(), data.end(), 0, SumAreas()) == 10891);
+        REQUIRE(std::accumulate( data.begin(), data.end(), 0, SumValues()) == 149);
+
+        oss.str("");
+        f = std::find_if( data.begin(), data.end(), CompareContent(std::make_pair(CoordinateCellId(0,0),StringCell("27"))) );
+        REQUIRE(f != data.end());
+        f->second.show(oss);
+        REQUIRE(oss.str() == "f():27");
+
+        oss.str("");
+        f = std::find_if( data.begin(), data.end(), CompareContent(std::make_pair(CoordinateCellId(0,0),ValueCell("42"))) );
+        REQUIRE(f != data.end());
+        f->second.show(oss);
+        REQUIRE(oss.str() == "f():42");
+
+        oss.str("");
+        f = std::find_if( data.begin(), data.end(), CompareContent(std::make_pair(CoordinateCellId(0,0),ValueCell("3412"))) );
+        REQUIRE(f != data.end());
+        f->second.show(oss);
+        REQUIRE(oss.str() == "3412");
+
+        f = std::find_if( data.begin(), data.end(), CompareContent(std::make_pair(CoordinateCellId(0,0),StringCell("0"))) );
+        REQUIRE(f == data.end());
     }
 }
